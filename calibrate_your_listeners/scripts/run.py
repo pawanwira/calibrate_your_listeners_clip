@@ -15,12 +15,12 @@ from omegaconf import OmegaConf
 import pytorch_lightning as pl
 import hydra
 
-from calibrate_your_listeners_private.src.systems import (
+from calibrate_your_listeners.src.systems import (
     listener_system,
     speaker_system,
 )
 
-from calibrate_your_listeners_private import constants
+from calibrate_your_listeners import constants
 
 
 NAME2SYSTEM = {
@@ -33,7 +33,7 @@ torch.backends.cudnn.benchmark = True
 @hydra.main(config_path="../config", config_name="l0")
 def run(config):
     if config.wandb_params.dryrun:
-        print("Running in dryrun mode")
+        # print("Running in dryrun mode")
         os.environ['WANDB_MODE'] = 'dryrun'
     os.environ['WANDB_CONSOLE']='wrap'
 
@@ -45,7 +45,7 @@ def run(config):
 
     wandb.init(
         project=config.wandb_params.project,
-        entity=getpass.getuser(),
+        entity="pawanwira",
         group=group_name,
         name=config.wandb_params.exp_name,
         config=OmegaConf.to_container(config, resolve=[True|False]),
@@ -63,7 +63,7 @@ def run(config):
     SystemClass = NAME2SYSTEM[config.pl.system]
     system = SystemClass(config)
 
-    print(f"wandb run directory is {wandb.run.dir}")
+    # print(f"wandb run directory is {wandb.run.dir}")
 
     trainer = pl.Trainer(
         gpus=1,
@@ -75,8 +75,10 @@ def run(config):
 
     trainer.fit(system)
 
+    # TODO: run system.save()
+
 def seed_everything(seed, use_cuda=True):
-    print(f"seed {seed}")
+    # print(f"seed {seed}")
     random.seed(seed)
     torch.manual_seed(seed)
     if use_cuda: torch.cuda.manual_seed_all(seed)
