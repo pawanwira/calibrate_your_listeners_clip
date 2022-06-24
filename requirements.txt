@@ -3,7 +3,7 @@ future==0.18.2
 hydra-core==1.1.1
 multiprocess==0.70.12.2
 omegaconf==2.1.1
-pandas==1.2.3
+pandas
 pathtools==0.1.2
 pathy==0.6.0
 plotly==4.14.3
@@ -18,13 +18,13 @@ sklearn==0.0
 smart-open==5.2.1
 smmap==3.0.5
 termcolor==1.1.0
-tokenizers==0.10.2
-torch==1.10.1
-torchaudio==0.7.2
+tokenizers
+torch
+torchaudio
 torchmetrics==0.6.2
-torchvision==0.11.2
+torchvision
 tqdm==4.49.0
 typer==0.3.2
 typing==3.7.4.3
-wandb==0.10.23
+wandb
 wasabi==0.8.2

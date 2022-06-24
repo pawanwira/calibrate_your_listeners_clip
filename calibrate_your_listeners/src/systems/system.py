@@ -60,7 +60,7 @@ class BasicSystem(pl.LightningModule):
     def log_results(self, result, category):
         wandb_result = self._convert_results_to_floats(result)
         wandb_result = self._add_wandb_category(wandb_result, category=category)
-        wandb_result['epoch'] = self.trainer.current_epoch
+        wandb_result['epoch'] = self.current_epoch
         wandb.log(wandb_result)
 
     def training_step(self, batch, batch_idx):

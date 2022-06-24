@@ -35,63 +35,88 @@ class SpeakerSystem(system.BasicSystem):
             p.requires_grad = False
 
     def _load_listener(self, listener_type, vocab_type, listener_idx):
+        # import pdb; pdb.set_trace()
+        if vocab_type == "shapeworld":
+            vocab = "small_vocab"
+        elif vocab_type == "gpt2":
+            vocab = "big_vocab"
+
         if listener_type == "normal":
             l0 = listener.Listener(config=self.config)
             l0_dir = constants.NORMAL_LISTENER_MODEL_DIR
             model_fname = os.path.join(
                 l0_dir,
-                f"sw_l0_{listener_idx}",
-                "epoch=99-step=12499.ckpt")
+                # "shapeworld",
+                # "small_vocab",
+                vocab,
+                f"normal_listener_{listener_idx}.pt"
+                # f"sw_l0_{listener_idx}",
+                # "epoch=99-step=12499.ckpt"
+                )
             self.l0_scorer = listener_scores.ListenerScores
         elif listener_type == "ensemble":
+            # TODO: edit flow for ensemble
             l0 = listener.Listener(config=self.config)
             l0_dir = constants.NORMAL_LISTENER_MODEL_DIR
             model_fname = os.path.join(
                 l0_dir,
-                f"ensemble_l0_si{listener_idx}",
-                "epoch=99-step=12499.ckpt")
+                vocab,
+                f"ensemble_listener_{listener_idx}.pt"
+                # f"ensemble_l0_si{listener_idx}",
+                # "epoch=99-step=12499.ckpt"
+                )
             self.l0_scorer = listener_scores.ListenerScores
         elif listener_type == "dropout":
             l0 = dropout_listener.DropoutListener(config=self.config)
             l0_dir = constants.DROPOUT_LISTENER_MODEL_DIR
             model_fname = os.path.join(
                 l0_dir,
-                f"dropout_l0_si{listener_idx}",
-                "epoch=99-step=12499.ckpt")
+                vocab,
+                f"dropout_listener_{listener_idx}.pt"
+                # f"dropout_l0_si{listener_idx}",
+                # "epoch=99-step=12499.ckpt"
+                )
             self.l0_scorer = dropout_listener_scores.DropoutListenerScores
 
         print(f'Loading listener from {model_fname}')
-        state_dict = self._load_and_process_state_dict(model_fname)
-        l0.load_state_dict(state_dict)
+        # import pdb; pdb.set_trace()
+        # TODO: load in unique listners
+        # test = "/data/pawanw/calibrate_your_listeners_clip/calibrate_your_listeners/src/models/checkpoints/test.pt"
+        # l0 = torch.load(test)
+        # state_dict = self ._load_and_process_state_dict(model_fname)
+        # l0.load_state_dict(state_dict)
 
         # Keep dropout for speaker
         # if listener_type == "normal":
         #     l0.eval()
-
+        l0 = torch.load(model_fname)
         return l0
 
     def _load_and_process_state_dict(self, model_fname):
+        # import pdb; pdb.set_trace()
         state_dict = torch.load(model_fname)['state_dict']
         new_state_dict = dict()
-
         for k, v in state_dict.items():
             key_ = 'model.'
             if k.startswith(key_):
                 k = k[len(key_):]
             new_state_dict[k] = v
+        import pdb; pdb.set_trace()
         return new_state_dict
 
     def load_listeners(self):
         self.train_listeners = []
         self.val_listeners = []
-        # Training listeener
+        # Training listener
         for listener_idx in range(0, self.config.listener_params.ensemble_size):
+            # import pdb; pdb.set_trace()
             print('Loading training listener')
             print(f'Train idx: {listener_idx}')
             listener = self._load_listener(
                 listener_type=self.config.listener_params.type,
                 vocab_type=self.config.model_params.vocab,
-                listener_idx=listener_idx+1 # idx start at 1 not 0
+                listener_idx = listener_idx + 1 # update: jun 21, 2022
+                # listener_idx=listener_idx # +1 # idx start at 1 not 0 # jun 2, 2022 update: let idx start at 0, not 1
                 )
             self.freeze_model(listener)
             self.train_listeners.append(listener)
@@ -106,7 +131,8 @@ class SpeakerSystem(system.BasicSystem):
             listener = self._load_listener(
                 listener_type=self.config.listener_params.type,
                 vocab_type=self.config.model_params.vocab,
-                listener_idx=listener_idx+1
+                # listener_idx=listener_idx # +1 # jun 2, 2022 update: +1 commented out
+                listener_idx = listener_idx + 1 # update: jun 21, 2022
                 )
             self.freeze_model(listener)
             self.val_listeners.append(listener)
@@ -146,6 +172,7 @@ class SpeakerSystem(system.BasicSystem):
         return pd.DataFrame(data)
 
     def get_losses_for_batch(self, batch, batch_idx, which_listener):
+        # import pdb; pdb.set_trace()
         imgs, labels, utterances = (
             batch['imgs'].float(), batch['label'].argmax(-1).long(), batch['utterance'])
         lang, lang_length, loss = self.model(imgs, labels)
@@ -163,6 +190,7 @@ class SpeakerSystem(system.BasicSystem):
         lis_pred = avg_l0_scores.argmax(1)
         loss = nn.CrossEntropyLoss()
         losses = loss(avg_l0_scores, labels)
+        # import pdb; pdb.set_trace()
         return {
             'loss': losses,
             'acc': (lis_pred == labels).float().mean(),
@@ -199,6 +227,7 @@ class SpeakerSystem(system.BasicSystem):
         return loss
 
     def validation_step(self, batch, batch_idx):
+        # import pdb; pdb.set_trace()
         for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]:
             which_listener = "train" if "trainL0" in setting else "val"
             result = self.get_losses_for_batch(

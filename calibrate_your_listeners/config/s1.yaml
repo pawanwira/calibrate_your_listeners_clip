@@ -4,7 +4,7 @@ wandb_params:
   project: calibrate_your_listeners
   exp_name: s1
   group_name: s1
-  dryrun: True
+  dryrun: True 
   tags: 
     - debug
 model_params:

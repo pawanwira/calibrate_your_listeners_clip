@@ -93,8 +93,11 @@ class Listener(nn.Module): # L_0
 
     def embed_features(self, feats):
         batch_size = feats.shape[0]
+        # print("batch_size: \n", batch_size)
         n_obj = feats.shape[1]
+        # print("n_obj: \n", n_obj)
         rest = feats.shape[2:]
+        # print("rest: \n", rest)
         feats_flat = feats.reshape(batch_size * n_obj, *rest)
         feats_emb_flat = self.feat_model(feats_flat)
         feats_emb = feats_emb_flat.unsqueeze(1).view(batch_size, n_obj, -1)
@@ -117,15 +120,17 @@ class Listener(nn.Module): # L_0
         # Image -> joint space if using a small space
         if self.image2Joint is not None:
             feats_emb = self.image2Joint(feats_emb)
-
+        # print("feats_emb: \n", feats_emb)
         # Embed language, g(u)
         lang_emb = self.lang_model(lang, lang_length,
                                     used_as_internal_listener) # 32, 40, 15 (batch, max_sentence, vocab_size)
         # lang -> joint space
         lang_emb = self.lang2Joint(lang_emb)
+        # print("lang_emb: \n", lang_emb)
 
         # Compute dot products, shape (batch_size, num_images in reference game)
         # L_0(t|I, u) ~ exp (f_L(I_t)^T g(u))
         scores = F.softmax(torch.einsum('ijh,ih->ij', (feats_emb, lang_emb)))
+        # print("scores: \n", scores)
         return scores, 0.0
 

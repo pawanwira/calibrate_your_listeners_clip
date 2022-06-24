@@ -49,10 +49,10 @@ class RNNEncoder(nn.Module):
         # TODO Bug with length = 0; length should always be >= 1, because of
         # mandatory EOS token
         # sorted_lengths += 1
-
         packed = rnn_utils.pack_padded_sequence(
             embed_seq,
-            sorted_lengths.data.tolist() if batch_size > 1 else length.data.tolist())
+            list(map(int, sorted_lengths.data.tolist())) if batch_size > 1 else length.data.tolist()) # temp edit mon jun 20
+            # sorted_lengths.data.tolist() if batch_size > 1 else length.data.tolist())
 
         _, hidden = self.gru(packed)
         hidden = hidden[-1, ...]

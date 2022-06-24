@@ -62,7 +62,6 @@ def run(config):
 
     SystemClass = NAME2SYSTEM[config.pl.system]
     system = SystemClass(config)
-
     # print(f"wandb run directory is {wandb.run.dir}")
 
     trainer = pl.Trainer(
@@ -73,9 +72,11 @@ def run(config):
         check_val_every_n_epoch=1,
     )
 
+    # import pdb; pdb.set_trace()
     trainer.fit(system)
-
-    # TODO: run system.save()
+    # import pdb; pdb.set_trace()
+    if config.pl.system == 'l0':
+        system.save()
 
 def seed_everything(seed, use_cuda=True):
     # print(f"seed {seed}")
