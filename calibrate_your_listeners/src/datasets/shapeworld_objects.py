@@ -6,18 +6,29 @@ from shapely import affinity
 import aggdraw
 from PIL import Image
 
+"""
 DIM = 64
 X_MIN, X_MAX = (8, 48)
 ONE_QUARTER = (X_MAX - X_MIN) // 3
 X_MIN_34, X_MAX_34 = (X_MIN + ONE_QUARTER, X_MAX - ONE_QUARTER)
 BUFFER = 10
 SIZE_MIN, SIZE_MAX = (3, 8)
+"""
+
+# new constants for higher image resolution for CLIP
+DIM = 224
+X_MIN, X_MAX = (70, 150) # (28, 180)
+ONE_QUARTER = (X_MAX - X_MIN) // 3
+X_MIN_34, X_MAX_34 = (X_MIN + ONE_QUARTER, X_MAX - ONE_QUARTER)
+BUFFER = 10
+SIZE_MIN, SIZE_MAX = (30, 70) # (30, 70) # (10.5, 28)
 
 TWOFIVEFIVE = np.float32(255)
 
 COLORS = ['red', 'blue', 'green', 'yellow', 'white', 'gray']
 BRUSHES = {c: aggdraw.Brush(c) for c in COLORS}
 PENS = {c: aggdraw.Pen(c) for c in COLORS}
+PENS_THICK = {c: aggdraw.Pen(c, 6) for c in COLORS}
 
 """Objects used in generate_shapeworld_data.py"""
 
@@ -128,6 +139,7 @@ class Shape:
 
 class Ellipse(Shape):
     def init_shape(self, min_skew=1.5):
+        # import pdb; pdb.set_trace()
         self.dx = rand_size()
         # Dy must be at least 1.6x dx, to remove ambiguity with circle
         bigger = int(self.dx * min_skew)
@@ -147,11 +159,18 @@ class Ellipse(Shape):
         self.shape = shape
 
         #  self.coords = [int(x) for x in self.shape.bounds]
-        self.coords = np.round(np.array(self.shape.boundary).astype(np.int))
+        self.coords = np.array(self.shape.boundary)
+        # self.coords = np.round(np.array(self.shape.boundary).astype(np.int))
         #  print(len(np.array(self.shape.convex_hull)))
         #  print(len(np.array(self.shape.convex_hull.boundary)))
         #  print(len(np.array(self.shape.exterior)))
         self.coords = np.unique(self.coords, axis=0).flatten()
+    
+    # added fri july 1 
+    def draw(self, image):
+        image.draw.polygon(self.coords, BRUSHES[self.color], PENS_THICK[self.color])
+
+    
 
 
 class Circle(Ellipse):
