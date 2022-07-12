@@ -26,7 +26,6 @@ from pprint import pprint
 
 # print(os.getcwd())
 pprint(sys.path)
-
 sys.path.insert(0, '/data/pawanw/calibrate_your_listeners_clip/calibrate_your_listeners/src')
 pprint(sys.path)
 
@@ -66,16 +65,11 @@ class SpeakerSystem(system.BasicSystem):
             l0_dir = constants.NORMAL_LISTENER_MODEL_DIR
             model_fname = os.path.join(
                 l0_dir,
-                # "shapeworld",
-                # "small_vocab",
                 vocab,
                 f"listener_{listener_idx}.pt"
-                # f"sw_l0_{listener_idx}",
-                # "epoch=99-step=12499.ckpt"
                 )
             self.l0_scorer = listener_scores.ListenerScores
         elif listener_type == "ensemble":
-            # TODO: edit flow for ensemble
             l0 = listener.Listener(config=self.config)
             l0_dir = constants.NORMAL_LISTENER_MODEL_DIR
             model_fname = os.path.join(
@@ -83,8 +77,6 @@ class SpeakerSystem(system.BasicSystem):
                 vocab,
                 "0",
                 f"dropout_{listener_idx}_listener.pt"
-                # f"ensemble_l0_si{listener_idx}",
-                # "epoch=99-step=12499.ckpt"
                 )
             self.l0_scorer = listener_scores.ListenerScores
         elif listener_type == "dropout":
@@ -95,8 +87,6 @@ class SpeakerSystem(system.BasicSystem):
                 vocab,
                 "0",
                 f"dropout_{listener_idx}_listener.pt"
-                # f"ensemble_l0_si{listener_idx}",
-                # "epoch=99-step=12499.ckpt"
                 )
             self.l0_scorer = dropout_listener_scores.DropoutListenerScores
 
@@ -129,24 +119,17 @@ class SpeakerSystem(system.BasicSystem):
             l0_dir = constants.NORMAL_LISTENER_MODEL_DIR
             model_fname = os.path.join(
                 l0_dir,
-                # "shapeworld",
-                # "small_vocab",
                 vocab,
                 f"normal_listener_{listener_idx}.pt"
-                # f"sw_l0_{listener_idx}",
-                # "epoch=99-step=12499.ckpt"
                 )
             self.l0_scorer = listener_scores.ListenerScores
         elif listener_type == "ensemble":
-            # TODO: edit flow for ensemble
             l0 = listener.Listener(config=self.config)
             l0_dir = constants.NORMAL_LISTENER_MODEL_DIR
             model_fname = os.path.join(
                 l0_dir,
                 vocab,
                 f"ensemble_listener_{listener_idx}.pt"
-                # f"ensemble_l0_si{listener_idx}",
-                # "epoch=99-step=12499.ckpt"
                 )
             self.l0_scorer = listener_scores.ListenerScores
         elif listener_type == "dropout":
@@ -156,8 +139,6 @@ class SpeakerSystem(system.BasicSystem):
                 l0_dir,
                 vocab,
                 f"dropout_listener_{listener_idx}.pt"
-                # f"dropout_l0_si{listener_idx}",
-                # "epoch=99-step=12499.ckpt"
                 )
             self.l0_scorer = dropout_listener_scores.DropoutListenerScores
 
@@ -199,9 +180,7 @@ class SpeakerSystem(system.BasicSystem):
             listener = self._load_listener(
                 listener_type=self.config.listener_params.type,
                 vocab_type=self.config.model_params.vocab,
-                listener_idx = listener_idx + 1 # update: jun 21, 2022               
-                # listener_idx=listener_idx # +1 # idx start at 1 not 0 # jun 2, 2022 update: let idx start at 0, not 1
-                # listener_idx = listener_idx + 4 # temp edit: jul 8, 2022
+                listener_idx = listener_idx + 1 
                 )
             self.freeze_model(listener)
             self.train_listeners.append(listener)
@@ -216,9 +195,7 @@ class SpeakerSystem(system.BasicSystem):
             listener = self._load_listener(
                 listener_type=self.config.listener_params.type,
                 vocab_type=self.config.model_params.vocab,
-                listener_idx=listener_idx + 1 # jun 2, 2022 update: +1 commented out
-                # listener_idx = listener_idx + 1 # update: jun 21, 2022
-                # listener_idx = listener_idx + 4 # temp edit: jul 8, 2022
+                listener_idx=listener_idx + 1
                 )
             self.freeze_model(listener)
             self.val_listeners.append(listener)
@@ -286,23 +263,6 @@ class SpeakerSystem(system.BasicSystem):
         # create and save lang table  
         df=self.construct_lang_table(lang=lang, gt=utterances)
         self.save_lang_table(df, batch_idx, prefix)
-        """
-        vocab_type = self.config.model_params.vocab
-        listener_type=self.config.listener_params.type
-        if vocab_type == "shapeworld":
-            vocab = "small_vocab"
-        elif vocab_type == "gpt2":
-            vocab = "big_vocab"
-        fpath = os.path.join(
-                constants.MAIN_REPO_DIR,
-                "clip",
-                "lang_table",
-                vocab,
-                listener_type,
-                f"{self.trainer.current_epoch}-{batch_idx}.csv"
-                )
-        df.to_csv(fpath, index=False)
-        """
         return {
             'loss': losses,
             'acc': (lis_pred == labels).float().mean(),
@@ -349,7 +309,6 @@ class SpeakerSystem(system.BasicSystem):
         result = self.get_losses_for_batch(batch, batch_idx, which_listener="train", prefix="train")
         loss = result['loss']
         self.log_results(result=result, category="train")
-        # self.save_lang_table(result['lang_table'], batch_idx, prefix="train")
         return loss
 
     def test_step(self, batch, batch_idx):
@@ -357,7 +316,6 @@ class SpeakerSystem(system.BasicSystem):
         result = self.get_losses_for_batch(batch, batch_idx, which_listener="test", prefix="test")
         loss = result['loss']
         self.log_results(result=result, category="test")
-        # self.save_lang_table(result['lang_table'], batch_idx, prefix="test")
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -368,7 +326,6 @@ class SpeakerSystem(system.BasicSystem):
                 batch[setting], batch_idx, which_listener=which_listener, prefix=setting)
             loss = result['loss']
             self.log_results(result=result, category=setting)
-            # self.save_lang_table(result['lang_table'], batch_idx, prefix=setting)
         return loss
 
     def val_dataloader(self):
