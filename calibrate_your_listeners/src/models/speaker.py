@@ -5,7 +5,7 @@ from torch.nn import functional as F
 from transformers import GPT2Tokenizer
 
 from calibrate_your_listeners.src.models import (
-    vision,
+    vision
 )
 from calibrate_your_listeners import constants
 
@@ -88,7 +88,6 @@ class Speaker(nn.Module): # L_0
         return ft_concat
 
     def forward(self, feats, targets, activation='gumbel', tau=1.0, length_penalty=False):
-        # import pdb; pdb.set_trace()
         batch_size = feats.size(0)
         feats_emb = self.embed_features(feats, targets)
 

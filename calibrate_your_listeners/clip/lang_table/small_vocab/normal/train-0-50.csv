@@ -1,33 +1,33 @@
 epoch,speaker_utterance,ground_truth
-0,<sos> blue yellow <sos> circle <sos> <eos>,<sos> yellow shape <eos>
-0,<sos> <sos> white <eos>,<sos> blue shape <eos>
-0,<sos> blue circle red red red,<sos> rectangle <eos>
-0,<sos> green ellipse <sos> <UNK> white circle square blue <eos>,<sos> green shape <eos>
-0,<sos> green <eos>,<sos> red rectangle <eos>
-0,<sos> rectangle rectangle red red <sos> <eos>,<sos> rectangle <eos>
-0,<sos> rectangle green circle white rectangle,<sos> yellow circle <eos>
-0,<sos> shape ellipse green red <eos>,<sos> yellow shape <eos>
-0,<sos> <sos> blue green yellow <eos>,<sos> circle <eos>
-0,<sos> green red circle green <eos>,<sos> blue shape <eos>
-0,<sos>,<sos> yellow shape <eos>
-0,<sos>,<sos> circle <eos>
-0,<sos> <UNK> <sos> green,<sos> green ellipse <eos>
-0,<sos> <UNK> yellow blue blue <UNK> yellow red blue <eos>,<sos> ellipse <eos>
-0,<sos> <sos> green white yellow,<sos> yellow shape <eos>
-0,<sos> square,<sos> gray shape <eos>
-0,<sos> square blue,<sos> rectangle <eos>
-0,<sos> <sos> square ellipse rectangle blue blue white green <eos>,<sos> square <eos>
-0,<sos> green gray red ellipse red,<sos> gray shape <eos>
-0,<sos> square red circle gray shape gray <UNK> <UNK> <eos>,<sos> green rectangle <eos>
-0,<sos> yellow <sos>,<sos> ellipse <eos>
-0,<sos> green white shape rectangle <UNK> red shape <sos> <eos>,<sos> rectangle <eos>
-0,<sos> square square green <sos> <sos> <eos>,<sos> gray shape <eos>
-0,<sos> red blue circle circle gray green square <eos>,<sos> ellipse <eos>
-0,<sos> green <eos>,<sos> white shape <eos>
+0,<sos> blue yellow <sos> circle <sos> <eos>,<sos> white shape <eos>
+0,<sos> square white blue ellipse shape ellipse <UNK> rectangle <eos>,<sos> blue shape <eos>
+0,<sos> blue circle red red red,<sos> square <eos>
+0,<sos> ellipse ellipse blue <UNK> white circle square blue <eos>,<sos> blue rectangle <eos>
+0,<sos> blue square <eos>,<sos> gray shape <eos>
+0,<sos> white rectangle red red <sos> <eos>,<sos> circle <eos>
+0,<sos> circle,<sos> square <eos>
+0,<sos> blue ellipse blue yellow <eos>,<sos> circle <eos>
+0,<sos> <sos> blue blue yellow <eos>,<sos> gray shape <eos>
+0,<sos> square blue circle green <eos>,<sos> white ellipse <eos>
+0,<sos>,<sos> rectangle <eos>
+0,<sos>,<sos> rectangle <eos>
+0,<sos> blue blue gray,<sos> gray shape <eos>
+0,<sos> <UNK> yellow blue blue <UNK> yellow red blue <eos>,<sos> rectangle <eos>
+0,<sos> red green white yellow,<sos> circle <eos>
+0,<sos> square,<sos> white shape <eos>
+0,<sos> square blue,<sos> square <eos>
+0,<sos> blue red ellipse ellipse blue white white green <eos>,<sos> gray square <eos>
+0,<sos> blue ellipse square ellipse red,<sos> blue shape <eos>
+0,<sos> square red circle gray shape gray <UNK> <UNK> <eos>,<sos> ellipse <eos>
+0,<sos> blue <sos>,<sos> circle <eos>
+0,<sos> blue white shape red white red shape <sos> <eos>,<sos> ellipse <eos>
+0,<sos> square square green circle <sos> circle ellipse,<sos> rectangle <eos>
+0,<sos> red blue circle circle gray green square <eos>,<sos> square <eos>
+0,<sos> blue <eos>,<sos> ellipse <eos>
 0,<sos> white blue yellow shape <eos>,<sos> white shape <eos>
-0,<sos> blue rectangle <eos>,<sos> square <eos>
-0,<sos> square circle gray yellow ellipse red blue square <eos>,<sos> red shape <eos>
-0,<sos> square gray blue green <sos> <sos> red green <eos>,<sos> yellow shape <eos>
-0,<sos> shape blue red <sos> ellipse blue red,<sos> white shape <eos>
-0,<sos> rectangle rectangle <sos> circle circle rectangle ellipse ellipse <eos>,<sos> yellow shape <eos>
-0,<sos> red rectangle red <sos> square yellow <sos> circle <eos>,<sos> blue shape <eos>
+0,<sos> blue shape <eos>,<sos> circle <eos>
+0,<sos> blue circle <sos> yellow ellipse red blue square <eos>,<sos> ellipse <eos>
+0,<sos> circle gray circle green <sos> <sos> red green <eos>,<sos> rectangle <eos>
+0,<sos> shape blue red <sos> ellipse blue red,<sos> square <eos>
+0,<sos> ellipse blue <sos> circle circle rectangle ellipse ellipse <eos>,<sos> rectangle <eos>
+0,<sos> red yellow red <sos> square yellow <sos> circle <eos>,<sos> rectangle <eos>

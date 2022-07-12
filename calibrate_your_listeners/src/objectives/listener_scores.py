@@ -11,10 +11,9 @@ class ListenerScores(object):
         self.listener_scores = self._calculate_listener_scores()
 
     def _calculate_listener_scores(self):
-        # import pdb; pdb.set_trace() 
         lis_scores = []
         for l0 in self.listeners:
-            # temp edit: mon jun 20
+            # edit: mon jun 20
             self.imgs = self.imgs.to(torch.float32)
             self.lang = self.lang.to(torch.float32)
             self.lang_length = self.lang_length.to(torch.int32)
@@ -22,10 +21,9 @@ class ListenerScores(object):
             # self.lang = self.lang.to(torch.int32)
             # self.lang_length = self.lang_length.to(torch.int32)
             
-            # temp edit: jul 11
-            """if l0.device != self.imgs.device:
+            if l0.device != self.imgs.device:
                 l0 = l0.to(self.imgs.device)
-            self.lang_length = self.lang_length.to(l0.device)""" 
+            self.lang_length = self.lang_length.to(l0.device) 
             lis_score, _ = l0(
                 self.imgs, self.lang, self.lang_length,
                 used_as_internal_listener=True

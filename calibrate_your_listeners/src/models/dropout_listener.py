@@ -3,8 +3,8 @@ import time
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-from calibrate_your_listeners.src.models_temp import listener
-from calibrate_your_listeners.src.models_temp import (
+from calibrate_your_listeners.src.models import (
+    listener,
     vision,
     rnn_encoder,
 )

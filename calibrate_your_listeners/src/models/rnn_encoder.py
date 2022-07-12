@@ -51,7 +51,7 @@ class RNNEncoder(nn.Module):
         # sorted_lengths += 1
         packed = rnn_utils.pack_padded_sequence(
             embed_seq,
-            list(map(int, sorted_lengths.data.tolist())) if batch_size > 1 else length.data.tolist()) # temp edit mon jun 20
+            list(map(int, sorted_lengths.data.tolist())) if batch_size > 1 else length.data.tolist()) # edit: mon jun 20
             # sorted_lengths.data.tolist() if batch_size > 1 else length.data.tolist())
 
         _, hidden = self.gru(packed)

@@ -8,9 +8,6 @@ torch.autograd.set_detect_anomaly(True)
 
 
 class BasicSystem(pl.LightningModule):
-    """
-    """
-
     def __init__(self, config):
         super().__init__()
         self.config = config

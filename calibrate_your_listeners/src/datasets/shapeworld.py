@@ -41,7 +41,6 @@ def _init_vocab(langs):
 
 
 def load_raw_data(data_file, dataset):
-    # import pdb; pdb.set_trace()
     data = np.load(data_file)
     # Preprocessing/tokenization
     return {
@@ -68,7 +67,6 @@ class Shapeworld(data.Dataset):
         """
         """
         super().__init__()
-        # import pdb; pdb.set_trace()
         self.train = train
         self.config = config
         # TODO update cofig dir
@@ -100,13 +98,11 @@ class Shapeworld(data.Dataset):
         self.i2w = self.vocab['i2w']
 
         self.load_data()
-        # import pdb; pdb.set_trace()
         self.imgs = self.raw_data['imgs']
         self.labels = self.raw_data['labels']
         self.imgs_original = self.raw_data['imgs_original']
 
     def load_vocab(self):
-        # import pdb; pdb.set_trace()
         vocab_fpath = os.path.join(self.directory, 'vocab.pt')
         print(f'[ config ] vocab fpath at {vocab_fpath}')
         if os.path.exists(vocab_fpath):
@@ -133,7 +129,6 @@ class Shapeworld(data.Dataset):
             generate_shapeworld_data.run(self.config.dataset_params)
 
     def load_data(self):
-        # import pdb; pdb.set_trace()
         if self.train and self.name == "l0":
             self.filepaths = self.l0_filepaths[:-1]
         elif not self.train and self.name == "l0":
@@ -158,7 +153,6 @@ class Shapeworld(data.Dataset):
                 raw_data['langs'], d['langs']), axis=0)
             raw_data["imgs_original"] = d['imgs_original'] if not raw_data['imgs_original'].size else np.concatenate((
                 raw_data['imgs_original'], d['imgs_original']), axis=0)
-        # import pdb; pdb.set_trace()
         self.raw_data = raw_data
         self.lang_raw = self.raw_data['langs']
         self.lang_idx, self.lang_len = self.to_idx(self.lang_raw)

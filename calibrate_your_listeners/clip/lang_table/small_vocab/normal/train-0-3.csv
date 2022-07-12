@@ -1,33 +1,33 @@
 epoch,speaker_utterance,ground_truth
-0,<sos> white red blue blue ellipse <sos> white <sos> <eos>,<sos> white shape <eos>
-0,<sos> shape yellow square <eos>,<sos> white shape <eos>
+0,<sos> white red blue blue ellipse <sos> white <sos> <eos>,<sos> circle <eos>
+0,<sos> shape yellow square <eos>,<sos> gray circle <eos>
 0,<sos> blue blue white red red blue gray gray <eos>,<sos> rectangle <eos>
-0,<sos> yellow rectangle,<sos> red ellipse <eos>
-0,<sos> yellow blue blue green red blue white white <eos>,<sos> yellow shape <eos>
-0,<sos> <UNK> yellow rectangle,<sos> yellow ellipse <eos>
-0,<sos> <eos>,<sos> circle <eos>
-0,<sos> ellipse white circle square yellow <UNK> yellow yellow <eos>,<sos> ellipse <eos>
-0,<sos> ellipse <eos>,<sos> rectangle <eos>
-0,<sos> <UNK> white blue <UNK> <eos>,<sos> circle <eos>
-0,<sos> blue square,<sos> square <eos>
-0,<sos> <sos> <eos>,<sos> ellipse <eos>
-0,<sos> rectangle <eos>,<sos> red circle <eos>
-0,<sos> blue <UNK> yellow yellow square rectangle ellipse ellipse <eos>,<sos> ellipse <eos>
-0,<sos> blue white <UNK> <sos> rectangle <UNK> yellow <sos> <eos>,<sos> circle <eos>
-0,<sos> ellipse ellipse <UNK> yellow blue <sos> rectangle yellow <eos>,<sos> circle <eos>
-0,<sos> <UNK> red yellow <eos>,<sos> yellow shape <eos>
-0,<sos> ellipse <eos>,<sos> rectangle <eos>
-0,<sos> circle shape <eos>,<sos> square <eos>
-0,<sos> shape <eos>,<sos> yellow shape <eos>
-0,<sos> yellow blue shape ellipse blue <sos> <sos> rectangle <eos>,<sos> rectangle <eos>
-0,<sos> <eos>,<sos> circle <eos>
-0,<sos> blue <UNK> circle yellow white,<sos> circle <eos>
-0,<sos> red red blue <UNK> square ellipse white rectangle <eos>,<sos> green shape <eos>
+0,<sos> yellow rectangle,<sos> yellow shape <eos>
+0,<sos> yellow blue blue green red blue white white <eos>,<sos> gray shape <eos>
+0,<sos> gray yellow shape,<sos> blue circle <eos>
+0,<sos> circle gray,<sos> green shape <eos>
+0,<sos> ellipse white circle square yellow <UNK> yellow yellow <eos>,<sos> white shape <eos>
+0,<sos> <UNK> <eos>,<sos> circle <eos>
+0,<sos> <UNK> white blue <UNK> <eos>,<sos> blue square <eos>
+0,<sos> blue square,<sos> rectangle <eos>
+0,<sos> <sos> <eos>,<sos> green shape <eos>
+0,<sos> yellow <eos>,<sos> rectangle <eos>
+0,<sos> blue <UNK> yellow yellow square rectangle ellipse ellipse <eos>,<sos> square <eos>
+0,<sos> blue white <UNK> <sos> rectangle <UNK> yellow <sos> <eos>,<sos> ellipse <eos>
+0,<sos> blue ellipse <UNK> yellow blue <sos> rectangle yellow <eos>,<sos> yellow shape <eos>
+0,<sos> <UNK> red yellow <eos>,<sos> white shape <eos>
+0,<sos> ellipse shape <sos> yellow shape <eos>,<sos> rectangle <eos>
+0,<sos> circle shape <eos>,<sos> ellipse <eos>
+0,<sos> shape <eos>,<sos> square <eos>
+0,<sos> yellow blue shape ellipse blue <sos> <sos> rectangle <eos>,<sos> white shape <eos>
 0,<sos> <eos>,<sos> square <eos>
-0,<sos> ellipse <eos>,<sos> white shape <eos>
-0,<sos> gray blue <eos>,<sos> gray shape <eos>
-0,<sos> rectangle shape <UNK> <eos>,<sos> red shape <eos>
+0,<sos> blue <UNK> circle yellow white,<sos> green circle <eos>
+0,<sos> red red blue <UNK> square ellipse white rectangle <eos>,<sos> green shape <eos>
+0,<sos> circle white ellipse red square blue gray yellow <eos>,<sos> green shape <eos>
+0,<sos> ellipse <eos>,<sos> ellipse <eos>
+0,<sos> ellipse blue <eos>,<sos> red shape <eos>
+0,<sos> rectangle shape <UNK> <eos>,<sos> circle <eos>
 0,<sos> square red gray <eos>,<sos> red shape <eos>
-0,<sos> rectangle shape gray red square circle <sos> red <eos>,<sos> white shape <eos>
-0,<sos> rectangle shape <sos> white,<sos> gray shape <eos>
-0,<sos> red red <eos>,<sos> white shape <eos>
+0,<sos> circle shape gray red square circle <sos> red <eos>,<sos> red shape <eos>
+0,<sos> rectangle shape <sos> white,<sos> green shape <eos>
+0,<sos> red red <eos>,<sos> square <eos>

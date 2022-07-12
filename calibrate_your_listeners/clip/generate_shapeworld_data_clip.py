@@ -66,7 +66,6 @@ def random_shape_from_spec(spec):
     return (color, shape)
 
 def shape_from_spec(color_spec, shape_spec, wanted, config):
-    # import pdb; pdb.set_trace()
     color = color_spec
     shape = shape_spec
     if config != None:
@@ -110,7 +109,6 @@ def random_config_single():
 
 # not completely random, unlike random_config_single()
 def config_single(color_spec, shape_spec, wanted, config): # input: ShapeSpec(0) or ShapeSpec(1) or ShapeSpec(2)
-    # import pdb; pdb.set_trace()
     shape = shape_from_spec(color_spec, shape_spec, wanted, config)
     return SingleConfig(*shape)
 
@@ -535,7 +533,6 @@ def generate_single(mp_args):
     return imgs, labels, config, i
 
 def generate_single_customize(mp_args):
-    # import pdb; pdb.set_trace()
     random.seed()
     n_images, correct, i, data_type, context, color_target, shape_target, color_distract, shape_distract, target_wanted, distract_wanted, must_utter_shape = mp_args
     imgs = np.zeros((n_images, DIM, DIM, 3), dtype=np.uint8)
@@ -564,7 +561,6 @@ def generate_single_customize(mp_args):
     shapes = []
     colors = []
     for w_idx in idx:
-        # import pdb; pdb.set_trace()
         if n_target > 0:
             # config = config_single(color_target, shape_target, target_wanted)  # new
             label = 1
@@ -773,7 +769,6 @@ def generate(n,
     if float_type:
         all_imgs = np.divide(all_imgs, TWOFIVEFIVE)
         all_labels = all_labels.astype(np.float32)
-    # import pdb; pdb.set_trace()
     langs = np.array([fmt_config(c) for c in configs], dtype=np.unicode)
     return {'imgs': all_imgs, 'labels': all_labels, 'langs': langs}
 
@@ -837,7 +832,6 @@ def _directory_check(directory):
 @hydra.main(config_path="../config", config_name="test")
 def run(config):
     # data_dir = './data/shapeworld/reference-1000-'
-    # import pdb; pdb.set_trace()
     # data_dir = config.data_dir # os.path.join(constants.MAIN_REPO_DIR, config.data_dir)
     data_dir = os.path.join(constants.MAIN_REPO_DIR, config.dataset_params.data_dir)
     print(f"[ config ] Data directory at {data_dir}")
@@ -851,7 +845,6 @@ def run(config):
         files = [f"{data_dir}/{prefix}-reference-{n_examples}-{idx}.npz" for idx in range(0, 1)]
     
     for f in files:
-        # import pdb; pdb.set_trace()
         data = generate(
             config.dataset_params.n_examples,
             config.dataset_params.n_images,

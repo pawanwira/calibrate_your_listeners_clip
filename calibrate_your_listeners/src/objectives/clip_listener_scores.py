@@ -5,15 +5,17 @@ import clip
 
 class CLIPListenerScores(object):
 
-    def __init__(self, listener, imgs, df, preprocess):
+    def __init__(self, listener, imgs, df, preprocess, vocab_type):
         self.listener = listener
         self.imgs = imgs
         self.df = df
         self.preprocess = preprocess
+        self.vocab_type = vocab_type
 
         self.listener_scores = self._calculate_listener_scores()
 
     def _calculate_listener_scores(self):
+        # import pdb; pdb.set_trace()
         lis_scores = []
         for i in range(len(self.imgs)):
             states = self.imgs[i]
@@ -21,13 +23,26 @@ class CLIPListenerScores(object):
             for j in range(3):
                 image = Image.fromarray(np.uint8(states[j].cpu())).convert('RGB')
                 images.append(self.preprocess(image))
-            image_pre = torch.tensor(np.stack(images)).cuda() # change var name
-            # lang_pre = "shape" # speaker_utterance in df # change var name # different from lang above
-            lang_pre = self.df['speaker_utterance'][i][:-13]
-            if lang_pre[0] in ['a', 'e', 'i', 'o', 'u']:
-                utterance = "This is an " + lang_pre # not the same as utterances (gt) above though
+            image_pre = torch.tensor(np.stack(images)).cuda() 
+
+            # import pdb; pdb.set_trace()
+            if self.vocab_type == "gpt2":
+                lang_pre = self.df['speaker_utterance'][i][:-13]
+            elif self.vocab_type == "shapeworld":
+                lang_pre = self.df['speaker_utterance'][i].replace("<sos>", "").replace("<eos>", "").replace("<UNK>", "").replace("<PAD>", "")
+                lang_pre = " ".join(lang_pre.split())
+            
+            print(len(lang_pre))
+            print(lang_pre)
+
+            if len(lang_pre):
+                if lang_pre[0] in ['a', 'e', 'i', 'o', 'u']:
+                    utterance = "This is an " + lang_pre 
+                else:
+                    utterance = "This is a " + lang_pre
             else:
-                utterance = "This is a " + lang_pre
+                utterance = " "
+
             utterance_tokens = clip.tokenize(utterance).cuda()
  
             with torch.no_grad():

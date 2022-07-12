@@ -4,7 +4,7 @@ import torch.nn as nn
 from torch.nn import functional as F
 from transformers import GPT2Tokenizer
 
-from calibrate_your_listeners.src.models_temp import (
+from calibrate_your_listeners.src.models import (
     vision,
     rnn_encoder,
 )
