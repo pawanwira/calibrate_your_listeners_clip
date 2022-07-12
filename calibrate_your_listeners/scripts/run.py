@@ -18,6 +18,7 @@ import hydra
 from calibrate_your_listeners.src.systems import (
     listener_system,
     speaker_system,
+    speaker_system_clip,
 )
 
 from calibrate_your_listeners import constants
@@ -25,6 +26,7 @@ from calibrate_your_listeners import constants
 
 NAME2SYSTEM = {
     'l0': listener_system.ListenerSystem,
+    's1_clip': speaker_system_clip.SpeakerCLIPSystem,
     's1': speaker_system.SpeakerSystem,
 }
 

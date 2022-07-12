@@ -1,5 +1,6 @@
 from calibrate_your_listeners.src.systems import system
-from calibrate_your_listeners.src.models import (
+# from calibrate_your_listeners.src.models_original import ( # TODO: continue debugging 'import models' error
+from calibrate_your_listeners.src.models_temp import (
     listener,
     dropout_listener,
     speaker,
@@ -23,12 +24,14 @@ from PIL import Image
 from pkg_resources import packaging
 import clip
 
-class SpeakerSystem(system.BasicSystem):
+class SpeakerCLIPSystem(system.BasicSystem):
 
     def __init__(self, config):
         super().__init__(config=config)
 
         self.post_model_init()
+
+        # TODO: Check self.parameters() - check that the speaker parameters are in here
 
         # self.listener, self.preprocess = clip.load("ViT-B/32")
         # self.listener.cuda().eval()
