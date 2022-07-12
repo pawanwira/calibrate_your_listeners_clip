@@ -21,9 +21,11 @@ class ListenerScores(object):
             # self.imgs = self.imgs.to(torch.int32)
             # self.lang = self.lang.to(torch.int32)
             # self.lang_length = self.lang_length.to(torch.int32)
-            if l0.device != self.imgs.device:
+            
+            # temp edit: jul 11
+            """if l0.device != self.imgs.device:
                 l0 = l0.to(self.imgs.device)
-            self.lang_length = self.lang_length.to(l0.device)
+            self.lang_length = self.lang_length.to(l0.device)""" 
             lis_score, _ = l0(
                 self.imgs, self.lang, self.lang_length,
                 used_as_internal_listener=True

@@ -1,0 +1,33 @@
+epoch,speaker_utterance,ground_truth
+27,<sos> red red red red,<sos> circle <eos>
+27,<sos> ellipse ellipse yellow ellipse ellipse yellow yellow yellow <eos>,<sos> ellipse <eos>
+27,<sos> white rectangle rectangle rectangle rectangle rectangle rectangle rectangle <eos>,<sos> rectangle <eos>
+27,<sos> yellow yellow red yellow white red white red <eos>,<sos> rectangle <eos>
+27,<sos> yellow yellow ellipse yellow yellow ellipse yellow yellow <eos>,<sos> circle <eos>
+27,<sos> yellow yellow yellow red red red red yellow <eos>,<sos> ellipse <eos>
+27,<sos> white white ellipse white white white gray gray <eos>,<sos> white ellipse <eos>
+27,<sos> blue blue blue blue blue blue blue blue <eos>,<sos> blue shape <eos>
+27,<sos> yellow ellipse ellipse ellipse ellipse ellipse yellow ellipse <eos>,<sos> ellipse <eos>
+27,<sos> blue blue blue blue blue blue blue blue <eos>,<sos> blue shape <eos>
+27,<sos> yellow <UNK> gray ellipse ellipse ellipse gray gray <eos>,<sos> ellipse <eos>
+27,<sos> yellow ellipse yellow yellow ellipse yellow ellipse red <eos>,<sos> yellow shape <eos>
+27,<sos> white white rectangle white white gray rectangle gray <eos>,<sos> rectangle <eos>
+27,<sos> yellow blue blue blue blue blue blue rectangle <eos>,<sos> blue shape <eos>
+27,<sos> ellipse ellipse blue ellipse blue blue yellow ellipse <eos>,<sos> square <eos>
+27,<sos> white white white white white white white white <eos>,<sos> white shape <eos>
+27,<sos> green gray green gray gray rectangle gray green <eos>,<sos> circle <eos>
+27,<sos> yellow gray gray green ellipse gray rectangle gray <eos>,<sos> circle <eos>
+27,<sos> square square square white square white white square <eos>,<sos> circle <eos>
+27,<sos> green green yellow green green green green green <eos>,<sos> green shape <eos>
+27,<sos> yellow yellow circle yellow circle yellow yellow circle <eos>,<sos> rectangle <eos>
+27,<sos> yellow yellow yellow yellow yellow ellipse white yellow <eos>,<sos> square <eos>
+27,<sos> blue blue yellow blue blue blue blue blue <eos>,<sos> blue ellipse <eos>
+27,<sos> green green green green green green green green <eos>,<sos> circle <eos>
+27,<sos> blue blue blue blue blue rectangle blue blue <eos>,<sos> circle <eos>
+27,<sos> rectangle rectangle rectangle rectangle yellow rectangle blue rectangle <eos>,<sos> rectangle <eos>
+27,<sos> yellow yellow ellipse ellipse yellow red green gray <eos>,<sos> yellow shape <eos>
+27,<sos> blue blue blue blue blue blue blue blue <eos>,<sos> blue shape <eos>
+27,<sos> yellow yellow ellipse green ellipse,<sos> green rectangle <eos>
+27,<sos> blue square square blue blue blue square blue <eos>,<sos> rectangle <eos>
+27,<sos> yellow yellow,<sos> circle <eos>
+27,<sos> green green green green green green green green <eos>,<sos> rectangle <eos>

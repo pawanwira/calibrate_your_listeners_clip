@@ -1,0 +1,33 @@
+epoch,speaker_utterance,ground_truth
+1,<sos> <UNK> ellipse white green green white <UNK> <UNK> <eos>,<sos> ellipse <eos>
+1,<sos> green white green white ellipse green <UNK> <UNK> <eos>,<sos> rectangle <eos>
+1,<sos> <UNK> <UNK> white <UNK> <UNK> ellipse <UNK> <UNK> <eos>,<sos> square <eos>
+1,<sos> <UNK> green white ellipse white ellipse gray ellipse <eos>,<sos> ellipse <eos>
+1,<sos> green ellipse white white white square <eos>,<sos> gray ellipse <eos>
+1,<sos> <UNK> <UNK> <UNK> <UNK> white <UNK> white ellipse <eos>,<sos> gray shape <eos>
+1,<sos> <UNK> circle circle blue green ellipse circle circle <eos>,<sos> square <eos>
+1,<sos> white <UNK> <eos>,<sos> green ellipse <eos>
+1,<sos> green green green green green green green green <eos>,<sos> yellow shape <eos>
+1,<sos> green green green green green green green green <eos>,<sos> blue shape <eos>
+1,<sos> <UNK> white <UNK> ellipse white ellipse white white <eos>,<sos> yellow shape <eos>
+1,<sos> <UNK> green green <UNK> green green green,<sos> blue shape <eos>
+1,<sos> green green green green green green <eos>,<sos> blue shape <eos>
+1,<sos> green <UNK> white white <UNK> <UNK> ellipse ellipse <eos>,<sos> square <eos>
+1,<sos> green green green green green green green green <eos>,<sos> gray shape <eos>
+1,<sos> <UNK> <UNK> ellipse ellipse ellipse ellipse ellipse ellipse <eos>,<sos> yellow shape <eos>
+1,<sos> white <UNK> white ellipse white white white white <eos>,<sos> rectangle <eos>
+1,<sos> <UNK> <UNK> ellipse <UNK> ellipse <UNK> ellipse ellipse <eos>,<sos> rectangle <eos>
+1,<sos> <eos>,<sos> green shape <eos>
+1,<sos> <UNK> green green green green green green green <eos>,<sos> square <eos>
+1,<sos> green green green green green green green green <eos>,<sos> blue shape <eos>
+1,<sos> <UNK> <UNK> <UNK> white ellipse <UNK> <UNK> yellow <eos>,<sos> red shape <eos>
+1,<sos> green green green green green green green gray <eos>,<sos> rectangle <eos>
+1,<sos> green green green green green green green rectangle <eos>,<sos> square <eos>
+1,<sos> <UNK> <sos> white <UNK> <UNK> blue ellipse red <eos>,<sos> rectangle <eos>
+1,<sos> white <UNK> white white ellipse <UNK> <UNK> white <eos>,<sos> ellipse <eos>
+1,<sos> <UNK> ellipse white <UNK> ellipse ellipse ellipse ellipse <eos>,<sos> red shape <eos>
+1,<sos> green green green green green green green circle <eos>,<sos> green shape <eos>
+1,<sos> white green white <eos>,<sos> blue shape <eos>
+1,<sos> <UNK> ellipse ellipse white ellipse white white ellipse <eos>,<sos> ellipse <eos>
+1,<sos> green green green green green green green green <eos>,<sos> green shape <eos>
+1,<sos> <UNK> ellipse ellipse white ellipse <UNK> <sos> ellipse <eos>,<sos> red shape <eos>

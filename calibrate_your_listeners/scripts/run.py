@@ -72,9 +72,7 @@ def run(config):
         check_val_every_n_epoch=1,
     )
 
-    # import pdb; pdb.set_trace()
     trainer.fit(system)
-    # import pdb; pdb.set_trace()
     if config.pl.system == 'l0':
         system.save()
 

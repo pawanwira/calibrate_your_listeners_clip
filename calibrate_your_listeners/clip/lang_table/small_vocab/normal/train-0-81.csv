@@ -1,0 +1,33 @@
+epoch,speaker_utterance,ground_truth
+0,<sos> green shape shape,<sos> rectangle <eos>
+0,<sos> green red white blue <sos> yellow yellow blue <eos>,<sos> yellow shape <eos>
+0,<sos> blue yellow,<sos> rectangle <eos>
+0,<sos> square <sos> rectangle rectangle <UNK> circle gray red <eos>,<sos> circle <eos>
+0,<sos> green green white red <sos> red red square <eos>,<sos> rectangle <eos>
+0,<sos> rectangle shape <eos>,<sos> white shape <eos>
+0,<sos> green rectangle <eos>,<sos> circle <eos>
+0,<sos> green white yellow,<sos> green shape <eos>
+0,<sos> gray <eos>,<sos> yellow shape <eos>
+0,<sos> <eos>,<sos> rectangle <eos>
+0,<sos> <eos>,<sos> yellow shape <eos>
+0,<sos> rectangle blue shape rectangle,<sos> green shape <eos>
+0,<sos> <sos> <UNK> rectangle ellipse <sos> circle <UNK> ellipse <eos>,<sos> circle <eos>
+0,<sos> green green yellow white green <sos> white shape <eos>,<sos> ellipse <eos>
+0,<sos> <eos>,<sos> white rectangle <eos>
+0,<sos> <UNK> <eos>,<sos> red shape <eos>
+0,<sos> <sos> shape blue blue shape <UNK> shape blue <eos>,<sos> gray shape <eos>
+0,<sos> rectangle rectangle green yellow ellipse blue white white <eos>,<sos> square <eos>
+0,<sos> square blue,<sos> white circle <eos>
+0,<sos> shape white square shape circle <UNK>,<sos> square <eos>
+0,<sos> gray rectangle <eos>,<sos> rectangle <eos>
+0,<sos> red blue <sos> red red white shape square <eos>,<sos> rectangle <eos>
+0,<sos> rectangle <UNK> <UNK> rectangle yellow yellow circle <UNK> <eos>,<sos> square <eos>
+0,<sos> blue,<sos> circle <eos>
+0,<sos> green blue square rectangle <eos>,<sos> circle <eos>
+0,<sos> rectangle green <eos>,<sos> square <eos>
+0,<sos> blue ellipse blue <eos>,<sos> ellipse <eos>
+0,<sos> blue <UNK> yellow ellipse red square red yellow <eos>,<sos> square <eos>
+0,<sos> rectangle green ellipse blue circle <UNK> shape gray <eos>,<sos> red shape <eos>
+0,<sos> rectangle rectangle <eos>,<sos> circle <eos>
+0,<sos> rectangle <sos> square <eos>,<sos> blue shape <eos>
+0,<sos> <UNK> gray green red rectangle yellow yellow blue <eos>,<sos> ellipse <eos>

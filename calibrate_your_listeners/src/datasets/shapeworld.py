@@ -41,12 +41,15 @@ def _init_vocab(langs):
 
 
 def load_raw_data(data_file, dataset):
+    # import pdb; pdb.set_trace()
     data = np.load(data_file)
     # Preprocessing/tokenization
     return {
-        'imgs': data['imgs'].transpose(0, 1, 4, 2, 3),
+        'imgs': data['imgs'].transpose(0, 1, 4, 2, 3),  
+        # 'imgs': data['imgs'],  # edit jul 9
         'labels': data['labels'],
-        'langs': np.array([t.lower().split() for t in data['langs']])
+        'langs': np.array([t.lower().split() for t in data['langs']]),
+        'imgs_original': data['imgs']
     }
     # try:
     # except:
@@ -65,6 +68,7 @@ class Shapeworld(data.Dataset):
         """
         """
         super().__init__()
+        # import pdb; pdb.set_trace()
         self.train = train
         self.config = config
         # TODO update cofig dir
@@ -83,7 +87,7 @@ class Shapeworld(data.Dataset):
             ]
         self.name = self.config.model_params.name
         self.s1_filepaths = [
-            os.path.join(self.directory, f'reference-1000-{f_index}.npz') for f_index in range(60, 70)
+            os.path.join(self.directory, f'reference-1000-{f_index}.npz') for f_index in range(135, 145) # range(60, 70)
         ]
 
 
@@ -96,10 +100,13 @@ class Shapeworld(data.Dataset):
         self.i2w = self.vocab['i2w']
 
         self.load_data()
+        # import pdb; pdb.set_trace()
         self.imgs = self.raw_data['imgs']
         self.labels = self.raw_data['labels']
+        self.imgs_original = self.raw_data['imgs_original']
 
     def load_vocab(self):
+        # import pdb; pdb.set_trace()
         vocab_fpath = os.path.join(self.directory, 'vocab.pt')
         print(f'[ config ] vocab fpath at {vocab_fpath}')
         if os.path.exists(vocab_fpath):
@@ -126,6 +133,7 @@ class Shapeworld(data.Dataset):
             generate_shapeworld_data.run(self.config.dataset_params)
 
     def load_data(self):
+        # import pdb; pdb.set_trace()
         if self.train and self.name == "l0":
             self.filepaths = self.l0_filepaths[:-1]
         elif not self.train and self.name == "l0":
@@ -139,7 +147,7 @@ class Shapeworld(data.Dataset):
 
         print(f"Filepaths: {self.filepaths}")
 
-        raw_data = {"imgs": np.array([]), "labels": np.array([]), "langs": np.array([])}
+        raw_data = {"imgs": np.array([]), "labels": np.array([]), "langs": np.array([]), "imgs_original": np.array([])}
         for fpath in self.filepaths:
             d = load_raw_data(fpath, dataset=self.config.dataset_params.name)
             raw_data["imgs"] = d['imgs'] if not raw_data['imgs'].size else np.concatenate((
@@ -148,7 +156,9 @@ class Shapeworld(data.Dataset):
                 raw_data['labels'], d['labels']), axis=0)
             raw_data["langs"] = d['langs'] if not raw_data['langs'].size else np.concatenate((
                 raw_data['langs'], d['langs']), axis=0)
-
+            raw_data["imgs_original"] = d['imgs_original'] if not raw_data['imgs_original'].size else np.concatenate((
+                raw_data['imgs_original'], d['imgs_original']), axis=0)
+        # import pdb; pdb.set_trace()
         self.raw_data = raw_data
         self.lang_raw = self.raw_data['langs']
         self.lang_idx, self.lang_len = self.to_idx(self.lang_raw)
@@ -162,8 +172,9 @@ class Shapeworld(data.Dataset):
         label = self.labels[i]
         lang = torch.Tensor(self.lang_idx[i]).type(torch.int64)
         lang = self.process_utterance(lang)
+        imgs_original = self.imgs_original[i] 
 
-        result = {"imgs": imgs, "label": label, "utterance": lang}
+        result = {"imgs": imgs, "label": label, "utterance": lang, "imgs_original": imgs_original}
         return result
 
     def process_utterance(self, lang):

@@ -1,0 +1,9 @@
+epoch,speaker_utterance,ground_truth
+7,<sos> white white white white white <UNK> white white <eos>,<sos> yellow ellipse <eos>
+7,<sos> green green green green rectangle green green green <eos>,<sos> ellipse <eos>
+7,<sos> green green green red green green green green <eos>,<sos> yellow shape <eos>
+7,<sos> white white white white white white white white <eos>,<sos> white shape <eos>
+7,<sos> green green red green green green green green <eos>,<sos> red square <eos>
+7,<sos> <UNK> <sos> red circle green red circle shape <eos>,<sos> circle <eos>
+7,<sos> green green red red green green red red <eos>,<sos> red shape <eos>
+7,<sos> green <UNK> yellow green gray ellipse white white <eos>,<sos> square <eos>

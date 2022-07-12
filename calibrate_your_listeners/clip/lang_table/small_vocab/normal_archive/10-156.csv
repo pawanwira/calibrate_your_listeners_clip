@@ -1,0 +1,9 @@
+epoch,speaker_utterance,ground_truth
+10,<sos> green green green green green green green green <eos>,<sos> gray shape <eos>
+10,<sos> gray gray gray gray gray gray gray gray <eos>,<sos> blue shape <eos>
+10,<sos> circle circle circle circle circle circle circle circle <eos>,<sos> square <eos>
+10,<sos> rectangle rectangle square square square rectangle yellow yellow <eos>,<sos> yellow shape <eos>
+10,<sos> green rectangle rectangle gray green green gray rectangle <eos>,<sos> rectangle <eos>
+10,<sos> green yellow green red ellipse yellow <UNK> <eos>,<sos> circle <eos>
+10,<sos> green green green green green green green green <eos>,<sos> green shape <eos>
+10,<sos> square square square gray rectangle gray green gray <eos>,<sos> square <eos>

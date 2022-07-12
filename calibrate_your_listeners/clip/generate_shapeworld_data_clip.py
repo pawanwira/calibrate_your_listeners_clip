@@ -16,7 +16,7 @@ import multiprocessing as mp
 from collections import namedtuple
 import hydra
 
-from calibrate_your_listeners.src.datasets.shapeworld_objects import (
+from calibrate_your_listeners.src.datasets.shapeworld_objects_clip import (
     Circle,
     Ellipse,
     Square,
@@ -65,10 +65,12 @@ def random_shape_from_spec(spec):
         raise ValueError("Unknown spec {}".format(spec))
     return (color, shape)
 
-def shape_from_spec(color_spec, shape_spec, wanted):
+def shape_from_spec(color_spec, shape_spec, wanted, config):
     # import pdb; pdb.set_trace()
     color = color_spec
     shape = shape_spec
+    if config != None:
+        target_color, target_shape = config
     if wanted:
         if color == None:
             color = random_color()
@@ -78,13 +80,23 @@ def shape_from_spec(color_spec, shape_spec, wanted):
         if color == None:
             color = random_color()
         else:
-            while color == color_spec:
+            while (color == color_spec): # or (color == target_color):
                 color = random_color()
         if shape == None:
             shape = random_shape()
         else:
-            while shape == shape_spec:
+            while shape == shape_spec: # or (shape == target_shape):  # make sure either shape or color is different from target too (similar to invalidate_single)
                 shape = random_shape()
+        if (color == target_color) & (shape == target_shape):
+            part_to_invalidate = random.randint(3)
+            if part_to_invalidate == 0:
+                color = new_color_stricter(color, [color_spec, target_color])
+            elif part_to_invalidate == 1:
+                shape = new_shape_stricter(shape, [shape_spec, target_shape])
+            elif part_to_invalidate == 2:
+                color = new_color_stricter(color, [color_spec, target_color])
+                shape = new_shape_stricter(shape, [shape_spec, target_shape])
+        
     return (color, shape)
 
 
@@ -97,9 +109,9 @@ def random_config_single():
     return SingleConfig(*shape)
 
 # not completely random, unlike random_config_single()
-def config_single(color_spec=None, shape_spec=None, wanted=True): # input: ShapeSpec(0) or ShapeSpec(1) or ShapeSpec(2)
+def config_single(color_spec, shape_spec, wanted, config): # input: ShapeSpec(0) or ShapeSpec(1) or ShapeSpec(2)
     # import pdb; pdb.set_trace()
-    shape = shape_from_spec(color_spec, shape_spec, wanted)
+    shape = shape_from_spec(color_spec, shape_spec, wanted, config)
     return SingleConfig(*shape)
 
 def random_config_spatial():
@@ -179,6 +191,19 @@ def new_color(existing_color):
 def new_shape(existing_shape):
     new_s = existing_shape
     while new_s == existing_shape:
+        new_s = random.choice(SHAPES)
+    return new_s
+
+def new_color_stricter(existing_color, restricted_colors):
+    new_c = existing_color
+    while new_c in restricted_colors:
+        new_c = random.choice(COLORS)
+    return new_c
+
+
+def new_shape_stricter(existing_shape, restricted_shapes):
+    new_s = existing_shape
+    while new_s in restricted_shapes:
         new_s = random.choice(SHAPES)
     return new_s
 
@@ -520,7 +545,7 @@ def generate_single_customize(mp_args):
     else: 
         random_distract = True
     # config = random_config_single()
-    config = config_single(color_target, shape_target, target_wanted)
+    config = config_single(color_target, shape_target, target_wanted, None)
     if context != None:
         is_none = True
         while is_none:
@@ -556,7 +581,7 @@ def generate_single_customize(mp_args):
             if random_distract:
                 new_config = invalidate_single(config)
             else:
-                new_config = config_single(color_distract, shape_distract, distract_wanted)
+                new_config = config_single(color_distract, shape_distract, distract_wanted, config)
         # new_config = config if label else invalidate_single(config)
 
         color_, shape_ = new_config
@@ -819,10 +844,11 @@ def run(config):
     _directory_check(data_dir)
 
     prefix = config.dataset_params.file_name_prefix
+    n_examples = config.dataset_params.n_examples
     if prefix == None:
-        files = [f"{data_dir}/reference-1000-{idx}.npz" for idx in range(0, 75)]
+        files = [f"{data_dir}/reference-{n_examples}-{idx}.npz" for idx in range(0, 75)]
     else:
-        files = [f"{data_dir}/{prefix}-reference-1000-{idx}.npz" for idx in range(10, 11)]
+        files = [f"{data_dir}/{prefix}-reference-{n_examples}-{idx}.npz" for idx in range(0, 1)]
     
     for f in files:
         # import pdb; pdb.set_trace()

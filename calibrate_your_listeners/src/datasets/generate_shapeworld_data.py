@@ -13,6 +13,7 @@ from tqdm import tqdm
 import os
 import multiprocessing as mp
 from collections import namedtuple
+import hydra
 
 from calibrate_your_listeners.src.datasets.shapeworld_objects import (
     Circle,
@@ -23,6 +24,7 @@ from calibrate_your_listeners.src.datasets.shapeworld_objects import (
     I
 )
 
+from calibrate_your_listeners import constants
 
 SHAPES = ['circle', 'square', 'rectangle', 'ellipse']
 COLORS = ['red', 'blue', 'green', 'yellow', 'white', 'gray']
@@ -595,23 +597,24 @@ def _directory_check(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-
+@hydra.main(config_path="../../config", config_name="l0")
 def run(config):
     # data_dir = './data/shapeworld/reference-1000-'
-    data_dir = config.data_dir # os.path.join(constants.MAIN_REPO_DIR, config.data_dir)
+    # data_dir = config.data_dir # os.path.join(constants.MAIN_REPO_DIR, config.data_dir)
+    data_dir = os.path.join(constants.MAIN_REPO_DIR, config.dataset_params.data_dir)
     print(f"[ config ] Data directory at {data_dir}")
     _directory_check(data_dir)
 
-    files = [f"{data_dir}/reference-1000-{idx}.npz" for idx in range(0, 75)]
+    files = [f"{data_dir}/reference-1000-{idx}.npz" for idx in range(75, 76)]
     for f in files:
         data = generate(
-            config.n_examples,
-            config.n_images,
-            config.p_correct,
+            config.dataset_params.n_examples,
+            config.dataset_params.n_images,
+            config.dataset_params.p_correct,
             verbose=True,
-            data_type=config.data_type,
-            img_func=IMG_FUNCS[config.image_type],
-            do_mp=config.multi_processing,
+            data_type=config.dataset_params.data_type,
+            img_func=IMG_FUNCS[config.dataset_params.image_type],
+            do_mp=config.dataset_params.multi_processing,
             context=None)
         np.savez_compressed(f, **data)
 
