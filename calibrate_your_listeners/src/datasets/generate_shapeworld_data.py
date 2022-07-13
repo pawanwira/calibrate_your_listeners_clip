@@ -597,7 +597,8 @@ def _directory_check(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-@hydra.main(config_path="../../config", config_name="l0")
+# @hydra.main(config_path="../../config", config_name="l0")
+@hydra.main(config_path="../../config", config_name="sw")
 def run(config):
     # data_dir = './data/shapeworld/reference-1000-'
     # data_dir = config.data_dir # os.path.join(constants.MAIN_REPO_DIR, config.data_dir)
@@ -605,7 +606,7 @@ def run(config):
     print(f"[ config ] Data directory at {data_dir}")
     _directory_check(data_dir)
 
-    files = [f"{data_dir}/reference-1000-{idx}.npz" for idx in range(75, 76)]
+    files = [f"{data_dir}/reference-1000-{idx}.npz" for idx in range(0, 1)]
     for f in files:
         data = generate(
             config.dataset_params.n_examples,
