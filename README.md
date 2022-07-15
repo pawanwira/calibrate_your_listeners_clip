@@ -1,6 +1,11 @@
 # Calibrate your listeners! Robust communication-based training for pragmatic speakers
 [[Paper]](https://arxiv.org/pdf/2110.05422.pdf) [[Short Video]](https://www.youtube.com/watch?v=3VKU9ueVTMo&ab_channel=RoseWang) [[Long Video]](https://www.youtube.com/watch?v=XibugeVHzzM&t=2s)
 
+
+NOTE: This should be run with python3.8
+
+
+
 Rose E. Wang, Julia White, Jesse Mu, Noah D. Goodman
 
 Findings of EMNLP 2021
