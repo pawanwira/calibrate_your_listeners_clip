@@ -3,7 +3,7 @@ from calibrate_your_listeners.src.systems import system
 from calibrate_your_listeners.src.models import (
     listener,
     dropout_listener,
-    speaker,
+    speaker_clip,
 )
 from calibrate_your_listeners.src.objectives import (
     listener_scores,
@@ -13,6 +13,8 @@ from calibrate_your_listeners.src.objectives import (
 from calibrate_your_listeners.src.systems import utils
 from calibrate_your_listeners import constants
 from pytorch_lightning.trainer.supporters import CombinedLoader
+
+# from transformers import CLIPTextConfig
 
 import os
 import torch
@@ -32,6 +34,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         self.post_model_init()
 
         # TODO: Check self.parameters() - check that the speaker parameters are in here
+        # import pdb; pdb.set_trace()
 
     def post_model_init(self):
         model = self.train_listeners[0]
@@ -44,7 +47,6 @@ class SpeakerCLIPSystem(system.BasicSystem):
             p.requires_grad = False
 
     def _load_listener(self, listener_type, vocab_type, listener_idx):
-        # import pdb; pdb.set_trace()
         if vocab_type == "shapeworld":
             vocab = "small_vocab"
         elif vocab_type == "gpt2":
@@ -79,7 +81,6 @@ class SpeakerCLIPSystem(system.BasicSystem):
             self.l0_scorer = dropout_listener_scores.DropoutListenerScores
 
         print(f'Loading listener from {model_fname}')
-        # import pdb; pdb.set_trace()
         # state_dict = self ._load_and_process_state_dict(model_fname)
         # l0.load_state_dict(state_dict)
 
@@ -90,7 +91,6 @@ class SpeakerCLIPSystem(system.BasicSystem):
         return l0
 
     def _load_and_process_state_dict(self, model_fname):
-        # import pdb; pdb.set_trace()
         state_dict = torch.load(model_fname)['state_dict']
         new_state_dict = dict()
         for k, v in state_dict.items():
@@ -98,7 +98,6 @@ class SpeakerCLIPSystem(system.BasicSystem):
             if k.startswith(key_):
                 k = k[len(key_):]
             new_state_dict[k] = v
-        # import pdb; pdb.set_trace()
         return new_state_dict
 
     def load_listeners(self):
@@ -113,20 +112,16 @@ class SpeakerCLIPSystem(system.BasicSystem):
                 )
         self.freeze_model(self.old_listener)"""
 
-        # import pdb; pdb.set_trace()
         # CLIP as listener
         self.clip_listener, self.preprocess = clip.load("ViT-B/32")
-        # clip_lis.cuda().eval()
-        # clip_lis.cuda()
+        self.clip_listener.cuda().eval()
         self.freeze_model(self.clip_listener)
         self.clip_scorer = clip_listener_scores.CLIPListenerScores
 
-        # import pdb; pdb.set_trace()
         self.train_listeners = []
         self.val_listeners = []
         # Training listener
         for listener_idx in range(0, self.config.listener_params.ensemble_size):
-            # import pdb; pdb.set_trace()
             print('Loading training listener')
             print(f'Train idx: {listener_idx}')
             listener = self._load_listener(
@@ -136,7 +131,8 @@ class SpeakerCLIPSystem(system.BasicSystem):
                 )
             self.freeze_model(listener)
             self.train_listeners.append(listener)
-
+        print(f'A training listener arch: {self.train_listeners[0]}')
+        """
         for listener_idx in range(self.config.listener_params.ensemble_size,
                                   2*self.config.listener_params.ensemble_size):
             # Val listeners
@@ -152,10 +148,10 @@ class SpeakerCLIPSystem(system.BasicSystem):
             self.freeze_model(listener)
             self.val_listeners.append(listener)
         print(f'A training listener arch: {self.train_listeners[0]}')
-        print(f'A validation listener arch: {self.val_listeners[0]}')
+        print(f'A validation listener arch: {self.val_listeners[0]}')"""
 
     def load_speaker(self):
-        self.model = speaker.Speaker(config=self.config)
+        self.model = speaker_clip.Speaker(config=self.config)
 
     def set_models(self):
         num_tokens = len(self.train_dataset.vocab['w2i'].keys())
@@ -211,18 +207,21 @@ class SpeakerCLIPSystem(system.BasicSystem):
         # lang, lang_length, loss = self.model(imgs_input.clone(), labels)
         lang, lang_length, loss = self.model(imgs_speaker, labels)
 
-        df=self.construct_lang_table(lang=lang, gt=utterances)
+        # df=self.construct_lang_table(lang=lang, gt=utterances)
         # self.save_lang_table(df, batch_idx, prefix)
 
+        # import pdb; pdb.set_trace()
         clip_scorer = self.clip_scorer(
             listener=self.clip_listener,
             imgs=imgs_clip,
-            df=df,
+            # df=df,
             preprocess=self.preprocess,
-            vocab_type=self.config.model_params.vocab
+            vocab_type=self.config.model_params.vocab,
+            lang=lang,
+            lang_length=lang_length
         )
 
-        # import pdb; pdb.set_trace()
+        import pdb; pdb.set_trace()
         lis_scores = clip_scorer.listener_scores
         loss = nn.CrossEntropyLoss()
         lis_pred = lis_scores.argmax(1)
@@ -288,6 +287,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         super().log_results(result, category)
 
     def training_step(self, batch, batch_idx):
+        import pdb; pdb.set_trace()
         result = self.get_losses_for_batch(batch, batch_idx, which_listener="train", prefix="train")
         loss = result['loss']
         self.log_results(result=result, category="train")

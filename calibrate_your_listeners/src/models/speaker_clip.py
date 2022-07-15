@@ -1,8 +1,10 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import pandas as pd
 from torch.nn import functional as F
-from transformers import GPT2Tokenizer
+from transformers import GPT2Tokenizer, CLIPTextConfig
+import clip
 
 from calibrate_your_listeners.src.models import (
     vision
@@ -22,18 +24,23 @@ class Speaker(nn.Module): # L_0
         self.config = config
         self._is_old = (self.config.model_params.vocab == "shapeworld")
         self._max_seq_len = constants.MAX_SEQ_LEN
+        self.clip_text_config = CLIPTextConfig()
 
         self.set_vocab()
         self.initialize_modules()
 
     def set_vocab(self):
-        if self._is_old:
+        # edit jul 14
+        self.vocab_size = self.clip_text_config.vocab_size
+        self._set_tokens()
+
+        """if self._is_old:
             self.vocab_size = self.config.dataset_params.num_shapeworld_tokens
             self._set_tokens()
         else:
             self._tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
             self._set_tokens()
-            self.vocab_size = self._tokenizer.vocab_size
+            self.vocab_size = self._tokenizer.vocab_size"""
 
     def initialize_modules(self):
         self.embedding = nn.Embedding(self.vocab_size, 50) # embedding_module
@@ -48,7 +55,7 @@ class Speaker(nn.Module): # L_0
             self.hidden_size)
 
     def init_lang_model(self):
-        self.hidden_size = self.config.model_params.hidden_size
+        self.hidden_size = self.clip_text_config.hidden_size # self.config.model_params.hidden_size  # edit: jul 14
         self.gru = nn.GRU(
             self.embedding.embedding_dim, self.hidden_size)
         self.hidden2vocab = nn.Linear(self.hidden_size, self.vocab_size)
@@ -65,6 +72,7 @@ class Speaker(nn.Module): # L_0
             self._start_token = constants.SOS_IDX
             self._end_token = constants.EOS_IDX
         else:
+            # TODO: set special tokens using self.clip_text_config
             self._start_token = None
             self._end_token = self._tokenizer.eos_token_id
             self._tokenizer.pad_token = self._tokenizer.eos_token
@@ -85,6 +93,25 @@ class Speaker(nn.Module): # L_0
         feats_and_targets = torch.cat((feats_emb, targets_onehot.unsqueeze(2)), 2)
         ft_concat = feats_and_targets.view(batch_size, -1)
         return ft_concat
+
+    """def _process_gt(self, gt):
+        if isinstance(gt, dict):
+            result = []
+            for seq_id in range(gt['input_ids'].shape[0]):
+                result.append(self._tokenizer.decode(gt['input_ids'][seq_id]))
+            return result
+        # else:
+        #     return self.train_dataset.to_text(gt.argmax(-1)) # link to to_text in shapeworld.py
+
+    def construct_lang_table(self, lang):
+        data = []
+        lang = {'input_ids': lang.argmax(-1)}
+        text_langs = self._process_gt(lang) # self.train_dataset.to_text(lang.argmax(-1))
+        for l in text_langs:
+            data.append({
+                'speaker_utterance': l
+            })
+        return pd.DataFrame(data)"""
 
     def forward(self, feats, targets, activation='gumbel', tau=1.0, length_penalty=False):
         import pdb; pdb.set_trace()
@@ -161,7 +188,6 @@ class Speaker(nn.Module): # L_0
             # (1, batch_size, n_vocab) X (n_vocab, h) -> (1, batch_size, h)
             inputs = (predicted_onehot.unsqueeze(0)) @ self.embedding.weight
 
-        import pdb; pdb.set_trace()
         # Add EOS if we've never sampled it
         eos_onehot = torch.zeros(batch_size, 1, self.vocab_size, device=feats.device)
         eos_onehot[:, 0, self._end_token] = 1.0
@@ -202,4 +228,24 @@ class Speaker(nn.Module): # L_0
 
         # Sum up log probabilities of samples
         lang_length = torch.Tensor(lang_length)
+
+        import pdb; pdb.set_trace()
+        """df=self.construct_lang_table(lang=lang_tensor)
+        
+        lang_final = []
+        for i in range(batch_size):
+            # TODO: add flow for shapeworld vocab # actually no need
+            utterance = df['speaker_utterance'][i][:-13]
+            if len(utterance):
+                if utterance[0] in ['a', 'e', 'i', 'o', 'u']:
+                    utterance_final = "This is an " + utterance 
+                else:
+                    utterance_final = "This is a " + utterance
+            else:
+                utterance_final = " "
+            utterance_tokens = clip.tokenize(utterance_final).cuda()
+            lang_final.append(utterance_tokens)
+        # lang_tensor_final = torch.Tensor(lang_final)"""
+
+        # return lang_final, lang_length, eos_loss
         return lang_tensor, lang_length, eos_loss # , lang_prob
