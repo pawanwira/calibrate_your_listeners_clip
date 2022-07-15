@@ -23,6 +23,8 @@ torch
 torchaudio
 torchmetrics==0.6.2
 torchvision
+tokenizers==0.9.4
+transformers==4.2.1
 tqdm==4.49.0
 typer==0.3.2
 typing==3.7.4.3
