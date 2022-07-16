@@ -185,7 +185,7 @@ class SpeakerSystem(system.BasicSystem):
             print(which_listener)
             self.check_requires_grad(lis)"""
         
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         l0_scorer = self.l0_scorer(
             listeners=listeners,
             imgs=imgs,
@@ -194,7 +194,7 @@ class SpeakerSystem(system.BasicSystem):
             config=self.config
         )
 
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         avg_l0_scores = l0_scorer.get_average_l0_score()
         lis_pred = avg_l0_scores.argmax(1)
         loss = nn.CrossEntropyLoss()
@@ -245,7 +245,7 @@ class SpeakerSystem(system.BasicSystem):
         super().log_results(result, category)
 
     def training_step(self, batch, batch_idx):
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         result = self.get_losses_for_batch(batch, batch_idx, which_listener="train", prefix="train")
         loss = result['loss']
         self.log_results(result=result, category="train")
@@ -258,7 +258,7 @@ class SpeakerSystem(system.BasicSystem):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]:
             which_listener = "train" if "trainL0" in setting else "val"
             result = self.get_losses_for_batch(

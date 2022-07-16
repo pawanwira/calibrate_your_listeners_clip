@@ -7,6 +7,6 @@ def create_dataloader(dataset, config, shuffle=True):
         shuffle=shuffle,
         pin_memory=True,
         drop_last=shuffle,
-        num_workers=config.dataset_params.data_loader_workers,
+        num_workers=config.dataset_params.data_loader_workers,  # 0, jul 15
     )
     return loader

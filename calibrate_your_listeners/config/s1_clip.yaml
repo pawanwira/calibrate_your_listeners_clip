@@ -37,5 +37,5 @@ training_params:
   seed: 13
   cuda: True
 optim_params:
-  batch_size: 32
+  batch_size: 32  # TODO: change back to 32 when done testing CLIP
   learning_rate: 0.0001

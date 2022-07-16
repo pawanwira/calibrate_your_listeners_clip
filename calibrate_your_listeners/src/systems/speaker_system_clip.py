@@ -205,12 +205,19 @@ class SpeakerCLIPSystem(system.BasicSystem):
         # imgs_input = batch['imgs'].transpose(0, 1, 4, 2, 3)
         # lang, lang_length, loss = self.model(imgs_input, labels)
         # lang, lang_length, loss = self.model(imgs_input.clone(), labels)
-        lang, lang_length, loss = self.model(imgs_speaker, labels)
+        lang, lang_length, loss, embedding_module = self.model(imgs_speaker, labels)
 
         # df=self.construct_lang_table(lang=lang, gt=utterances)
         # self.save_lang_table(df, batch_idx, prefix)
 
         # import pdb; pdb.set_trace()
+
+        # TODO Look at self.clip_listener.token_embedding.weight -> look at weight.shape V x d
+        # V is vocab size, d is hidden size
+        # TODO make sure that lang is ... x... x V
+        # eg 32, 10, 49408 
+        # TODO look into dot product in rnn_encoder.py
+        # --> matrix mulitple lang @ token_embedding.weight
         clip_scorer = self.clip_scorer(
             listener=self.clip_listener,
             imgs=imgs_clip,
@@ -218,32 +225,16 @@ class SpeakerCLIPSystem(system.BasicSystem):
             preprocess=self.preprocess,
             vocab_type=self.config.model_params.vocab,
             lang=lang,
-            lang_length=lang_length
+            lang_length=lang_length,
+            embedding_module=embedding_module
         )
 
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         lis_scores = clip_scorer.listener_scores
         loss = nn.CrossEntropyLoss()
         lis_pred = lis_scores.argmax(1)
         losses = loss(lis_scores, labels)
         acc = (lis_pred == labels).float().mean()
-
-        """listeners = self.train_listeners if which_listener == "train" else self.val_listeners
-
-        l0_scorer = self.l0_scorer(
-            listeners=listeners,
-            # imgs=imgs,
-            imgs = imgs_input,
-            lang=lang,
-            lang_length=lang_length,
-            config=self.config
-        )
-
-        avg_l0_scores_old = l0_scorer.get_average_l0_score()
-        lis_pred_old = avg_l0_scores_old.argmax(1)
-        loss = nn.CrossEntropyLoss()
-        losses_old = loss(avg_l0_scores_old, labels)
-        acc_old = (lis_pred_old == labels).float().mean()"""
         
         return {
             'loss': losses,
@@ -287,7 +278,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         super().log_results(result, category)
 
     def training_step(self, batch, batch_idx):
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         result = self.get_losses_for_batch(batch, batch_idx, which_listener="train", prefix="train")
         loss = result['loss']
         self.log_results(result=result, category="train")

@@ -13,7 +13,7 @@ PAD_IDX = 0
 SOS_IDX = 1
 EOS_IDX = 2
 
-MAX_SEQ_LEN=10
+MAX_SEQ_LEN= 10 # 77 # TODO: change back to 10 when ready
 EPS=1e-5
 
 NAME2DATASETS = {
