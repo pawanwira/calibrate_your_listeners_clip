@@ -27,7 +27,7 @@ dataset_params:
   multi_processing: False # True
   data_type: reference
   image_type: single
-  data_dir: data/shapeworld
+  data_dir: clip/sw # clip/sw  # data/shapeworld
   num_shapeworld_tokens: 0
 training_params:
   gpu_device: 8

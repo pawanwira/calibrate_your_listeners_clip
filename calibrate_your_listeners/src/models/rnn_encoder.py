@@ -10,6 +10,7 @@ class RNNEncoder(nn.Module):
     """
     def __init__(self, embedding_module, is_old=False, hidden_size=100, dropout=0.):
         super(RNNEncoder, self).__init__()
+        # import pdb; pdb.set_trace()
         self.embedding = embedding_module
         self.embedding_dim = embedding_module.embedding_dim
         self.hidden_size = hidden_size
@@ -29,6 +30,7 @@ class RNNEncoder(nn.Module):
         :returns: new hidden state, h_t. shape is (batch_size, hidden_size)
             hidden_size is typically 100.
         """
+        # import pdb; pdb.set_trace()
         if not used_as_internal_listener and not self._is_old:
             seq = seq['input_ids']
             seq = F.one_hot(seq,

@@ -1,8 +1,8 @@
 from calibrate_your_listeners import constants
 from calibrate_your_listeners.src.systems import system
 from calibrate_your_listeners.src.models import (
-    listener,
     dropout_listener,
+    listener,
 )
 
 from transformers import GPT2Tokenizer
@@ -36,10 +36,11 @@ class ListenerSystem(system.BasicSystem):
 
     def save(self):
         l0_dir = constants.NORMAL_LISTENER_MODEL_DIR
-        if self.config.model_params.vocab == "shapeworld":
-            vocab_type = "small_vocab"
-        elif self.config.model_params.vocab == "gpt2":
-            vocab_type = "big_vocab"
+        # if self.config.model_params.vocab == "shapeworld":
+        #     vocab_type = "small_vocab"
+        # elif self.config.model_params.vocab == "gpt2":
+        #     vocab_type = "big_vocab"
+        vocab_type = "big_clip_vocab"
 
         model_type = self.config.model_params.type
 

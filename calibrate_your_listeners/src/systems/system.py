@@ -19,6 +19,7 @@ class BasicSystem(pl.LightningModule):
 
 
     def set_datasets(self):
+        # import pdb; pdb.set_trace()
         self.train_dataset = constants.NAME2DATASETS[self.config.dataset_params.name](
             train=True,
             config=self.config,

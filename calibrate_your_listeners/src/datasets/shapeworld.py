@@ -5,6 +5,7 @@ import torch.utils.data as data
 import torch.nn.functional as F
 from calibrate_your_listeners.src.datasets import generate_shapeworld_data
 from calibrate_your_listeners import constants
+from transformers import CLIPTokenizer, CLIPTextConfig
 
 PAD_TOKEN = '<PAD>'
 SOS_TOKEN = '<sos>'
@@ -67,6 +68,7 @@ class Shapeworld(data.Dataset):
         """
         """
         super().__init__()
+        # import pdb; pdb.set_trace()
         self.train = train
         self.config = config
         # TODO update cofig dir
@@ -75,6 +77,13 @@ class Shapeworld(data.Dataset):
             self.config.dataset_params.data_dir
         )
         self.config.dataset_params.data_dir = self.directory
+
+        # TEMP START
+        self._tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
+        self._max_seq_len = constants.MAX_SEQ_LEN
+        self.clip_text_config = CLIPTextConfig()
+        self._end_token = 49407
+        # TEMP END
 
         # Data directory information
         if self.config.model_params.name == "l0":
@@ -85,9 +94,8 @@ class Shapeworld(data.Dataset):
             ]
         self.name = self.config.model_params.name
         self.s1_filepaths = [
-            os.path.join(self.directory, f'reference-1000-{f_index}.npz') for f_index in range(135, 145) # range(60, 70)
+            os.path.join(self.directory, f'reference-1000-{f_index}.npz') for f_index in range(60, 70) # range(135, 145)
         ]
-
 
         # Datasetloading
         self.generate_data()
@@ -142,6 +150,7 @@ class Shapeworld(data.Dataset):
 
         print(f"Filepaths: {self.filepaths}")
 
+        # import pdb; pdb.set_trace()
         raw_data = {"imgs": np.array([]), "labels": np.array([]), "langs": np.array([]), "imgs_original": np.array([])}
         for fpath in self.filepaths:
             d = load_raw_data(fpath, dataset=self.config.dataset_params.name)
@@ -155,6 +164,7 @@ class Shapeworld(data.Dataset):
                 raw_data['imgs_original'], d['imgs_original']), axis=0)
         self.raw_data = raw_data
         self.lang_raw = self.raw_data['langs']
+        # import pdb; pdb.set_trace()
         self.lang_idx, self.lang_len = self.to_idx(self.lang_raw)
 
     def __len__(self):
@@ -186,8 +196,44 @@ class Shapeworld(data.Dataset):
             #       #         lang[B][L] = SOS_IDX
         else:
             str_lang = self.to_str_text([lang])
-            lang = self.listener_tokenize_f(str_lang)
+            # import pdb; pdb.set_trace()
+            # lang = self.listener_tokenize_f(str_lang) 
+            lang = self.tokenize(str_lang) # temp replacement
         return lang
+
+    # TEMP
+    def tokenize(self, utterances):
+        # import pdb; pdb.set_trace() # does not work
+        # self._max_seq_len = max_seq_len
+        """self._max_seq_len = constants.MAX_SEQ_LEN
+        self._tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
+        self.clip_text_config = CLIPTextConfig()
+        self._end_token = 49407"""
+        encoded_input = self._tokenizer(
+            utterances,
+            padding=True,
+            truncation=True,
+            # max_length=self._max_seq_len-1,
+            max_length=self._max_seq_len + 2,
+            return_tensors="pt")
+        # pad
+        seq_length = encoded_input['input_ids'].shape[1]
+        """eos_input_ids = torch.tensor([
+            self._end_token for _ in range(self._max_seq_len-seq_length)]).unsqueeze(0)
+        eos_attention = torch.tensor([0 for _ in range(self._max_seq_len-seq_length)]).unsqueeze(0)"""
+        eos_input_ids = torch.tensor([
+            self._end_token for _ in range(self.clip_text_config.max_position_embeddings-seq_length)]).unsqueeze(0)
+        eos_attention = torch.tensor([0 for _ in range(self.clip_text_config.max_position_embeddings-seq_length)]).unsqueeze(0)
+        # Add an EOS token at the very end if it doesn't already exist
+        # and add attention to ignore the EOS tokens
+        # batch_size x 1
+        # eos_input_ids = torch.tensor([self._end_token for _ in range(batch_size)]).unsqueeze(1)
+        encoded_input['input_ids'] = torch.cat((encoded_input['input_ids'],
+                                                eos_input_ids), dim=1)
+        encoded_input['attention_mask'] = torch.cat((encoded_input['attention_mask'],
+                                                eos_attention), dim=1)
+        encoded_input = {k : v.squeeze(0) for k, v in encoded_input.items()}
+        return encoded_input# .to(self.device)
 
     def to_str_text(self, idxs):
         """Omits the <sos> and <eos> tokens"""

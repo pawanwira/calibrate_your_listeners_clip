@@ -1,8 +1,8 @@
 from calibrate_your_listeners.src.systems import system
 # from calibrate_your_listeners.src.models_original import ( # TODO: continue debugging 'import models' error
 from calibrate_your_listeners.src.models import (
-    listener,
     dropout_listener,
+    listener,
     speaker_clip,
 )
 from calibrate_your_listeners.src.objectives import (
@@ -14,7 +14,7 @@ from calibrate_your_listeners.src.systems import utils
 from calibrate_your_listeners import constants
 from pytorch_lightning.trainer.supporters import CombinedLoader
 
-# from transformers import CLIPTextConfig
+from transformers import CLIPTokenizer
 
 import os
 import torch
@@ -37,6 +37,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         # import pdb; pdb.set_trace()
 
     def post_model_init(self):
+        # import pdb; pdb.set_trace()
         model = self.train_listeners[0]
         self.train_dataset.listener_tokenize_f=model.tokenize
         self.val_dataset.listener_tokenize_f=model.tokenize
@@ -47,13 +48,15 @@ class SpeakerCLIPSystem(system.BasicSystem):
             p.requires_grad = False
 
     def _load_listener(self, listener_type, vocab_type, listener_idx):
-        if vocab_type == "shapeworld":
-            vocab = "small_vocab"
-        elif vocab_type == "gpt2":
-            vocab = "big_vocab"
+        # if vocab_type == "shapeworld":
+        #     vocab = "small_vocab"
+        # elif vocab_type == "gpt2":
+        #     vocab = "big_vocab"
+
+        vocab = 'big_clip_vocab'
 
         if listener_type == "normal":
-            l0 = listener.Listener(config=self.config)
+            # l0 = listener.Listener(config=self.config)
             l0_dir = constants.NORMAL_LISTENER_MODEL_DIR
             model_fname = os.path.join(
                 l0_dir,
@@ -62,7 +65,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
                 )
             self.l0_scorer = listener_scores.ListenerScores
         elif listener_type == "ensemble":
-            l0 = listener.Listener(config=self.config)
+            # l0 = listener.Listener(config=self.config)
             l0_dir = constants.NORMAL_LISTENER_MODEL_DIR
             model_fname = os.path.join(
                 l0_dir,
@@ -71,7 +74,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
                 )
             self.l0_scorer = listener_scores.ListenerScores
         elif listener_type == "dropout":
-            l0 = dropout_listener.DropoutListener(config=self.config)
+            # l0 = dropout_listener.DropoutListener(config=self.config)
             l0_dir = constants.DROPOUT_LISTENER_MODEL_DIR
             model_fname = os.path.join(
                 l0_dir,
@@ -117,6 +120,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         self.clip_listener.cuda().eval()
         self.freeze_model(self.clip_listener)
         self.clip_scorer = clip_listener_scores.CLIPListenerScores
+        self.tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
 
         self.train_listeners = []
         self.val_listeners = []
@@ -126,13 +130,13 @@ class SpeakerCLIPSystem(system.BasicSystem):
             print(f'Train idx: {listener_idx}')
             listener = self._load_listener(
                 listener_type=self.config.listener_params.type,
-                vocab_type=self.config.model_params.vocab,
+                vocab_type= 'big_clip_vocab', # self.config.model_params.vocab,
                 listener_idx = listener_idx + 1
                 )
             self.freeze_model(listener)
             self.train_listeners.append(listener)
         print(f'A training listener arch: {self.train_listeners[0]}')
-        """
+
         for listener_idx in range(self.config.listener_params.ensemble_size,
                                   2*self.config.listener_params.ensemble_size):
             # Val listeners
@@ -142,13 +146,13 @@ class SpeakerCLIPSystem(system.BasicSystem):
             print(f'Val idx: {listener_idx}')
             listener = self._load_listener(
                 listener_type=self.config.listener_params.type,
-                vocab_type=self.config.model_params.vocab,
+                vocab_type='big_clip_vocab', # self.config.model_params.vocab,
                 listener_idx = listener_idx + 1
                 )
             self.freeze_model(listener)
             self.val_listeners.append(listener)
         print(f'A training listener arch: {self.train_listeners[0]}')
-        print(f'A validation listener arch: {self.val_listeners[0]}')"""
+        print(f'A validation listener arch: {self.val_listeners[0]}')
 
     def load_speaker(self):
         self.model = speaker_clip.Speaker(config=self.config)
@@ -167,13 +171,21 @@ class SpeakerCLIPSystem(system.BasicSystem):
             return result
         else:
             return self.train_dataset.to_text(gt.argmax(-1))
+        
+    def _process_gt_clip(self, gt):
+        if isinstance(gt, dict):
+            result = []
+            for seq_id in range(gt['input_ids'].shape[0]):
+                result.append(self.tokenizer.decode(gt['input_ids'][seq_id]))
+            return result
 
     def construct_lang_table(self, lang, gt):
+        # import pdb; pdb.set_trace()
         data = []
         text_gts = self._process_gt(gt)
         if isinstance(gt, dict):
             lang = {'input_ids': lang.argmax(-1)}
-        text_langs = self._process_gt(lang) # self.train_dataset.to_text(lang.argmax(-1))
+        text_langs = self._process_gt_clip(lang) # self.train_dataset.to_text(lang.argmax(-1))
         for l, gt in zip(text_langs, text_gts):
             data.append({
                 'epoch': self.trainer.current_epoch,
@@ -206,19 +218,11 @@ class SpeakerCLIPSystem(system.BasicSystem):
         # lang, lang_length, loss = self.model(imgs_input, labels)
         # lang, lang_length, loss = self.model(imgs_input.clone(), labels)
         lang, lang_length, loss, embedding_module = self.model(imgs_speaker, labels)
-
-        # df=self.construct_lang_table(lang=lang, gt=utterances)
+        # import pdb; pdb.set_trace()
+        df=self.construct_lang_table(lang=lang, gt=utterances)
         # self.save_lang_table(df, batch_idx, prefix)
 
-        # import pdb; pdb.set_trace()
-
-        # TODO Look at self.clip_listener.token_embedding.weight -> look at weight.shape V x d
-        # V is vocab size, d is hidden size
-        # TODO make sure that lang is ... x... x V
-        # eg 32, 10, 49408 
-        # TODO look into dot product in rnn_encoder.py
-        # --> matrix mulitple lang @ token_embedding.weight
-        clip_scorer = self.clip_scorer(
+        """clip_scorer = self.clip_scorer(
             listener=self.clip_listener,
             imgs=imgs_clip,
             # df=df,
@@ -228,13 +232,42 @@ class SpeakerCLIPSystem(system.BasicSystem):
             lang_length=lang_length,
             embedding_module=embedding_module
         )
-
-        # import pdb; pdb.set_trace()
         lis_scores = clip_scorer.listener_scores
         loss = nn.CrossEntropyLoss()
         lis_pred = lis_scores.argmax(1)
         losses = loss(lis_scores, labels)
-        acc = (lis_pred == labels).float().mean()
+        acc = (lis_pred == labels).float().mean()"""
+
+        # import pdb; pdb.set_trace()
+        if which_listener == "train":
+            clip_scorer = self.clip_scorer(
+                listener=self.clip_listener,
+                imgs=imgs_clip,
+                # df=df,
+                preprocess=self.preprocess,
+                vocab_type=self.config.model_params.vocab,
+                lang=lang,
+                lang_length=lang_length,
+                embedding_module=embedding_module
+            )
+            lis_scores = clip_scorer.listener_scores
+            loss = nn.CrossEntropyLoss()
+            lis_pred = lis_scores.argmax(1)
+            losses = loss(lis_scores, labels)
+            acc = (lis_pred == labels).float().mean()
+        else:
+            l0_scorer = self.l0_scorer(
+                listeners=self.val_listeners,
+                imgs=imgs_speaker,
+                lang=lang,
+                lang_length=lang_length,
+                config=self.config
+            )
+            avg_l0_scores = l0_scorer.get_average_l0_score()
+            lis_pred = avg_l0_scores.argmax(1)
+            loss = nn.CrossEntropyLoss()
+            losses = loss(avg_l0_scores, labels)
+            acc = (lis_pred == labels).float().mean()
         
         return {
             'loss': losses,
@@ -247,17 +280,20 @@ class SpeakerCLIPSystem(system.BasicSystem):
 
     def save_lang_table(self, df, batch_idx, prefix):
         vocab_type = self.config.model_params.vocab
-        listener_type=self.config.listener_params.type
-        if vocab_type == "shapeworld":
-            vocab = "small_vocab"
-        elif vocab_type == "gpt2":
-            vocab = "big_vocab"
+        # listener_type=self.config.listener_params.type
+        # if vocab_type == "shapeworld":
+        #     vocab = "small_vocab"
+        # elif vocab_type == "gpt2":
+        #     vocab = "big_vocab"
+        vocab = "clip_vocab"
+        exp_name = "experiment_1"
         fpath = os.path.join(
                 constants.MAIN_REPO_DIR,
                 "clip",
                 "lang_table",
                 vocab,
-                listener_type,
+                # listener_type,
+                exp_name,
                 f"{prefix}-{self.trainer.current_epoch}-{batch_idx}.csv"
                 )
         df.to_csv(fpath, index=False, escapechar="\\")
@@ -291,7 +327,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]:
+        for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]:  # ["trainL0_trainD", "trainL0_valD"]:
             which_listener = "train" if "trainL0" in setting else "val"
             result = self.get_losses_for_batch(
                 batch[setting], batch_idx, which_listener=which_listener, prefix=setting)
@@ -305,7 +341,9 @@ class SpeakerCLIPSystem(system.BasicSystem):
         # val L0 - train D
         # val L0 - val D
         loaders = {
+            # CLIP (which speaker was trained with) and train dataset
             "trainL0_trainD": utils.create_dataloader(self.train_dataset, self.config, shuffle=False),
+            # CLIP (which speaker was trained with) and val dataset
             "trainL0_valD": utils.create_dataloader(self.val_dataset, self.config, shuffle=False),
             "valL0_trainD": utils.create_dataloader(self.train_dataset, self.config, shuffle=False),
             "valL0_valD": utils.create_dataloader(self.val_dataset, self.config, shuffle=False),

@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-from transformers import GPT2Tokenizer
+from transformers import GPT2Tokenizer, CLIPTextConfig, CLIPTokenizer
 
 from calibrate_your_listeners.src.models import (
     vision,
@@ -19,19 +19,30 @@ class Listener(nn.Module): # L_0
         self._is_old = (self.config.model_params.vocab == "shapeworld")
         self._max_seq_len = max_seq_len
 
+        self.clip_text_config = CLIPTextConfig()
+
         self.set_vocab()
         self.initialize_modules()
 
 
     def set_vocab(self):
-        if self._is_old:
+        # import pdb; pdb.set_trace()
+        self.vocab_size = self.clip_text_config.vocab_size
+        
+        """if self._is_old:
             self.vocab_size = self.config.dataset_params.num_shapeworld_tokens
         else:
             self._tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
             self._set_tokens()
-            self.vocab_size = self._tokenizer.vocab_size
+            self.vocab_size = self._tokenizer.vocab_size"""
+
+        # self._tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+        self._tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
+
+        self._set_tokens()
 
     def initialize_modules(self):
+        # import pdb; pdb.set_trace()
         self.embedding = nn.Embedding(self.vocab_size, 50) # embedding_module
         self.init_lang_feature_model()
         self.init_image_feature_model()
@@ -41,6 +52,7 @@ class Listener(nn.Module): # L_0
         self.lang2Joint = nn.Linear(self.lang_model.hidden_size, self.image_feat_size, bias=False)
 
     def init_lang_feature_model(self):
+        # import pdb; pdb.set_trace()
         self.lang_model = rnn_encoder.RNNEncoder(
             self.embedding, is_old=self._is_old) # g
 
@@ -52,18 +64,22 @@ class Listener(nn.Module): # L_0
         return self._is_old
 
     def tokenize(self, utterances):
-        # import pdb; pdb.set_trace()
+        import pdb; pdb.set_trace() # does not work
         encoded_input = self._tokenizer(
             utterances,
             padding=True,
             truncation=True,
-            max_length=self._max_seq_len-1,
+            # max_length=self._max_seq_len-1,
+            max_length=self._max_seq_len + 2,
             return_tensors="pt")
         # pad
         seq_length = encoded_input['input_ids'].shape[1]
-        eos_input_ids = torch.tensor([
+        """eos_input_ids = torch.tensor([
             self._end_token for _ in range(self._max_seq_len-seq_length)]).unsqueeze(0)
-        eos_attention = torch.tensor([0 for _ in range(self._max_seq_len-seq_length)]).unsqueeze(0)
+        eos_attention = torch.tensor([0 for _ in range(self._max_seq_len-seq_length)]).unsqueeze(0)"""
+        eos_input_ids = torch.tensor([
+            self._end_token for _ in range(self.clip_text_config.max_position_embeddings-seq_length)]).unsqueeze(0)
+        eos_attention = torch.tensor([0 for _ in range(self.clip_text_config.max_position_embeddings-seq_length)]).unsqueeze(0)
         # Add an EOS token at the very end if it doesn't already exist
         # and add attention to ignore the EOS tokens
         # batch_size x 1
@@ -76,11 +92,15 @@ class Listener(nn.Module): # L_0
         return encoded_input# .to(self.device)
 
     def _set_tokens(self):
+        self._start_token = 49406 # start token id
+        self._end_token = 49407 # end token id
+        self._pad_token = self._end_token # 0 # pad token id
+
         # Adding padding token to GPT tokenizer
-        self._tokenizer.pad_token = self._tokenizer.eos_token
+        """self._tokenizer.pad_token = self._tokenizer.eos_token
         self._start_token = None
         self._end_token = self._tokenizer.eos_token_id
-        self._torch_end_token = torch.tensor(self._end_token).to(self.device)
+        self._torch_end_token = torch.tensor(self._end_token).to(self.device)"""
 
     def get_length(self, lang):
         if self.is_old:
@@ -116,7 +136,7 @@ class Listener(nn.Module): # L_0
             Represents the actual length of each sequence.
         :returns: softmax of listener's beliefs over images in reference game.
         """
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         # Embed features, f_L(I_t)
         feats_emb = self.embed_features(feats)
         # Image -> joint space if using a small space
@@ -124,6 +144,7 @@ class Listener(nn.Module): # L_0
             feats_emb = self.image2Joint(feats_emb)
         # print("feats_emb: \n", feats_emb)
         # Embed language, g(u)
+        # import pdb; pdb.set_trace()
         lang_emb = self.lang_model(lang, lang_length,
                                     used_as_internal_listener) # 32, 40, 15 (batch, max_sentence, vocab_size)
         # lang -> joint space

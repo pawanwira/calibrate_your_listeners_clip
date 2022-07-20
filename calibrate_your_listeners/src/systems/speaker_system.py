@@ -1,7 +1,7 @@
 from calibrate_your_listeners.src.systems import system
 from calibrate_your_listeners.src.models import (
-    listener,
     dropout_listener,
+    listener,
     speaker
 )
 
@@ -200,7 +200,7 @@ class SpeakerSystem(system.BasicSystem):
         loss = nn.CrossEntropyLoss()
         losses = loss(avg_l0_scores, labels)
 
-        df=self.construct_lang_table(lang=lang, gt=utterances)
+        # df=self.construct_lang_table(lang=lang, gtx=utterances)
         # self.save_lang_table(df, batch_idx, prefix)
 
         return {

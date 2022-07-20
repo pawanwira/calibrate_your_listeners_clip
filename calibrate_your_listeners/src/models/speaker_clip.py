@@ -7,7 +7,8 @@ from transformers import GPT2Tokenizer, CLIPTextConfig
 import clip
 
 from calibrate_your_listeners.src.models import (
-    vision
+    vision,
+    vision_clip
 )
 from calibrate_your_listeners import constants
 
@@ -70,7 +71,7 @@ class Speaker(nn.Module): # L_0
         self.hidden2vocab = nn.Linear(self.hidden_size, self.vocab_size)
 
     def init_image_feature_model(self):
-        self.feat_model = vision.Conv4() # f_L(I_t)
+        self.feat_model = vision_clip.Conv4() # f_L(I_t)
 
     @property
     def is_old(self):
@@ -81,7 +82,7 @@ class Speaker(nn.Module): # L_0
         # temp
         self._start_token = 49406 # start token id
         self._end_token = 49407 # end token id
-        self._pad_token = 0 # pad token id
+        self._pad_token = self._end_token # 0 # pad token id
 
         """if self.is_old:
             self._start_token = constants.SOS_IDX
@@ -165,7 +166,7 @@ class Speaker(nn.Module): # L_0
 
         # (B,L,D) to (L,B,D)
         inputs_onehot = inputs_onehot.transpose(0, 1)
-
+        
         # compute embeddings
         # (1, batch_size, n_vocab) X (n_vocab, h) -> (1, batch_size, h)
         inputs = inputs_onehot @ self.embedding.weight
@@ -176,6 +177,7 @@ class Speaker(nn.Module): # L_0
         max_len = self._max_seq_len # - 2  # clip
 
         for i in range(max_len):  # Have room for EOS if never sampled
+            # import pdb; pdb.set_trace()
             # FIXME: This is inefficient since I do sampling even if we've
             # finished generating language.
             if all(done_sampling):
