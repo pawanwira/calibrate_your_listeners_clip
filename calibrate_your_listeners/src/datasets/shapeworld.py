@@ -94,7 +94,7 @@ class Shapeworld(data.Dataset):
             ]
         self.name = self.config.model_params.name
         self.s1_filepaths = [
-            os.path.join(self.directory, f'reference-1000-{f_index}.npz') for f_index in range(60, 70) # range(135, 145)
+            os.path.join(self.directory, f'reference-1000-{f_index}.npz') for f_index in range(60, 70) # range(50, 60) # range(135, 145)
         ]
 
         # Datasetloading
@@ -202,6 +202,7 @@ class Shapeworld(data.Dataset):
         return lang
 
     # TEMP
+    # this tokenize function is originally from listener.py
     def tokenize(self, utterances):
         # import pdb; pdb.set_trace() # does not work
         # self._max_seq_len = max_seq_len
@@ -222,8 +223,10 @@ class Shapeworld(data.Dataset):
             self._end_token for _ in range(self._max_seq_len-seq_length)]).unsqueeze(0)
         eos_attention = torch.tensor([0 for _ in range(self._max_seq_len-seq_length)]).unsqueeze(0)"""
         eos_input_ids = torch.tensor([
-            self._end_token for _ in range(self.clip_text_config.max_position_embeddings-seq_length)]).unsqueeze(0)
-        eos_attention = torch.tensor([0 for _ in range(self.clip_text_config.max_position_embeddings-seq_length)]).unsqueeze(0)
+            self._end_token for _ in range(self._max_seq_len + 2 - seq_length)]).unsqueeze(0)
+            # self._end_token for _ in range(self.clip_text_config.max_position_embeddings-seq_length)]).unsqueeze(0)
+        # eos_attention = torch.tensor([0 for _ in range(self.clip_text_config.max_position_embeddings-seq_length)]).unsqueeze(0)
+        eos_attention = torch.tensor([0 for _ in range(self._max_seq_len + 2 -seq_length)]).unsqueeze(0)
         # Add an EOS token at the very end if it doesn't already exist
         # and add attention to ignore the EOS tokens
         # batch_size x 1

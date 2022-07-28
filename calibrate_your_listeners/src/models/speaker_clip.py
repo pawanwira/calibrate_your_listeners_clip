@@ -1,3 +1,4 @@
+from calibrate_your_listeners.src.models import vision_clip
 import numpy as np
 import torch
 import torch.nn as nn
@@ -7,7 +8,6 @@ from transformers import GPT2Tokenizer, CLIPTextConfig
 import clip
 
 from calibrate_your_listeners.src.models import (
-    vision,
     vision_clip
 )
 from calibrate_your_listeners import constants
@@ -44,11 +44,12 @@ class Speaker(nn.Module): # L_0
             self.vocab_size = self._tokenizer.vocab_size"""
 
         # TODO: modify according to CLIP's requirements - this is temporary and just for testing
-        self._tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+        # self._tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
         self._set_tokens()
 
 
     def initialize_modules(self):
+        # import pdb; pdb.set_trace()
         # self.hidden_size = self.clip_text_config.hidden_size
         self.hidden_size = self.config.model_params.hidden_size
         # self.embedding = nn.Embedding(self.vocab_size, self.hidden_size)
@@ -109,7 +110,7 @@ class Speaker(nn.Module): # L_0
         ft_concat = feats_and_targets.view(batch_size, -1)
         return ft_concat
 
-    def _process_gt(self, gt):
+    """def _process_gt(self, gt):
         if isinstance(gt, dict):
             result = []
             for seq_id in range(gt['input_ids'].shape[0]):
@@ -126,7 +127,44 @@ class Speaker(nn.Module): # L_0
             data.append({
                 'speaker_utterance': l
             })
-        return pd.DataFrame(data)
+        return pd.DataFrame(data)"""
+
+    # y is targets
+    def teacher_forcing_forward(self, feats, seq, targets): # length, targets): # y):
+        # import pdb; pdb.set_trace()
+        batch_size = seq.shape[0]
+        feats_emb = self.embed_features(feats=feats, targets=targets) # y.long())
+
+        # reorder from (B,L,D) to (L,B,D)
+        seq = seq.transpose(0, 1).to(feats.device)
+
+        # embed your sequences
+        embed_seq = seq @ self.embedding.weight
+
+        # feats_emb = self.init_h(feats_emb)
+        feats_emb = self.imgFeat2hidden(feats_emb)  # replaces line above
+        
+        feats_emb = feats_emb.unsqueeze(0)
+
+        # shape = (seq_len, batch, hidden_dim)
+        output, _ = self.gru(embed_seq, feats_emb)  
+        # feats_emb here is the basically like states in "forward" function below
+        # embed_seq is the sequence of ground truth words in utterances, rather than the predicted_onehot (predicted next word in utterance) in the "forward" function below
+
+        # reorder from (L,B,D) to (B,L,D)
+        # (batch_size, max_sequence_length, hidden unit size)
+        output = output.transpose(0, 1)
+
+        max_length = output.size(1)
+        output_2d = output.reshape(batch_size * max_length, -1)
+        # outputs_2d = self.outputs2vocab(output_2d)
+        outputs_2d = self.hidden2vocab(output_2d)
+
+        # Distribution over vocab for each batch, (batch_size, max_seq_length, vocab_size)
+        lang_tensor = outputs_2d.reshape(batch_size, max_length, self.vocab_size)
+        # if lang_tensor.size(1) != 77:
+        #     import pdb; pdb.set_trace()
+        return lang_tensor
 
     def forward(self, feats, targets, activation='gumbel', tau=1.0, length_penalty=False):
         # import pdb; pdb.set_trace()
@@ -208,18 +246,23 @@ class Speaker(nn.Module): # L_0
             # (1, batch_size, n_vocab) X (n_vocab, h) -> (1, batch_size, h)
             inputs = (predicted_onehot.unsqueeze(0)) @ self.embedding.weight
 
+        # if (lang_length[0] == 8 ) & (lang_length[1] == 7) & (lang_length[2] == 9) & (lang_length[3] == 8):
+        #     import pdb; pdb.set_trace()
+
         # import pdb; pdb.set_trace()
         # Add EOS if we've never sampled it
-        eos_onehot = torch.zeros(batch_size, 1, self.vocab_size, device=feats.device)
-        eos_onehot[:, 0, self._end_token] = 1.0
-        lang.append(eos_onehot)
+        if not all(done_sampling):
+            eos_onehot = torch.zeros(batch_size, 1, self.vocab_size, device=feats.device)
+            eos_onehot[:, 0, self._end_token] = 1.0
+            lang.append(eos_onehot)
 
-        # Cut off the rest of the sentences
-        lang_length += (~done_sampling)
+            # Cut off the rest of the sentences
+            lang_length += (~done_sampling) 
 
         pad_onehot = torch.zeros(batch_size, 1, self.vocab_size, device=feats.device)
         pad_onehot[:, 0, self._pad_token] = 1.0
-        for i in range(self.clip_text_config.max_position_embeddings - lang_length[0]):
+        # for i in range(self.clip_text_config.max_position_embeddings - max(lang_length)):
+        for i in range(max_len + 2 - max(lang_length)):
             lang.append(pad_onehot)
 
         # Cat language tensors (batch_size, max_seq_length, vocab_size)
@@ -258,4 +301,6 @@ class Speaker(nn.Module): # L_0
 
         # import pdb; pdb.set_trace()
         # return lang_final, lang_length, eos_loss
+        # if lang_tensor.size(1) != 77:
+        #     import pdb; pdb.set_trace()
         return lang_tensor, lang_length, eos_loss, self.embedding # , lang_prob

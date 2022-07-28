@@ -5,8 +5,8 @@ from torch.nn import functional as F
 from transformers import GPT2Tokenizer
 
 from calibrate_your_listeners.src.models import (
-    vision,
     rnn_encoder,
+    vision_clip,
 )
 from calibrate_your_listeners import constants
 
@@ -45,7 +45,7 @@ class Listener(nn.Module): # L_0
             self.embedding, is_old=self._is_old) # g
 
     def init_image_feature_model(self):
-        self.feat_model = vision.Conv4() # f_L(I_t)
+        self.feat_model = vision_clip.Conv4() # f_L(I_t)
 
     @property
     def is_old(self):

@@ -5,8 +5,8 @@ from torch.nn import functional as F
 from transformers import GPT2Tokenizer
 
 from calibrate_your_listeners.src.models import (
-    vision,
     rnn_encoder,
+    vision_clip,
 )
 from calibrate_your_listeners import constants
 
@@ -45,7 +45,7 @@ class Listener(nn.Module): # L_0
             self.embedding, is_old=self._is_old) # g
 
     def init_image_feature_model(self):
-        self.feat_model = vision.Conv4() # f_L(I_t)
+        self.feat_model = vision_clip.Conv4() # f_L(I_t)
 
     @property
     def is_old(self):
@@ -73,7 +73,7 @@ class Listener(nn.Module): # L_0
         encoded_input['attention_mask'] = torch.cat((encoded_input['attention_mask'],
                                                 eos_attention), dim=1)
         encoded_input = {k : v.squeeze(0) for k, v in encoded_input.items()}
-        return encoded_input# .to(self.device)
+        return encoded_input # .to(self.device)
 
     def _set_tokens(self):
         # Adding padding token to GPT tokenizer
@@ -118,6 +118,7 @@ class Listener(nn.Module): # L_0
         """
         # import pdb; pdb.set_trace()
         # Embed features, f_L(I_t)
+        import pdb; pdb.set_trace()
         feats_emb = self.embed_features(feats)
         # Image -> joint space if using a small space
         if self.image2Joint is not None:

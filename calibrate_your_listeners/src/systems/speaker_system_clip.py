@@ -24,13 +24,17 @@ import wandb
 import numpy as np
 from PIL import Image
 from pkg_resources import packaging
+from torch.nn import functional as F
 import clip
+from calibrate_your_listeners import constants
+import math
 
 class SpeakerCLIPSystem(system.BasicSystem):
 
     def __init__(self, config):
         super().__init__(config=config)
 
+        self._max_seq_len = constants.MAX_SEQ_LEN
         self.post_model_init()
 
         # TODO: Check self.parameters() - check that the speaker parameters are in here
@@ -131,7 +135,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
             listener = self._load_listener(
                 listener_type=self.config.listener_params.type,
                 vocab_type= 'big_clip_vocab', # self.config.model_params.vocab,
-                listener_idx = listener_idx + 1
+                listener_idx = listener_idx + 7 # + 5 # + 1
                 )
             self.freeze_model(listener)
             self.train_listeners.append(listener)
@@ -147,7 +151,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
             listener = self._load_listener(
                 listener_type=self.config.listener_params.type,
                 vocab_type='big_clip_vocab', # self.config.model_params.vocab,
-                listener_idx = listener_idx + 1
+                listener_idx = listener_idx + 7 # + 5 # + 1
                 )
             self.freeze_model(listener)
             self.val_listeners.append(listener)
@@ -163,11 +167,27 @@ class SpeakerCLIPSystem(system.BasicSystem):
         self.load_listeners()
         self.load_speaker()
 
+    def get_entropy(self, probs):
+        entropy = 0
+        for prob in probs:
+            prob_val = prob.item()
+            if prob_val != 0:
+                to_add = (-(prob_val * math.log(prob_val, 3)))
+                entropy += to_add
+        return entropy
+
+    def get_entropies(self, lis_scores):
+        result = []
+        for i in range(len(lis_scores)):
+            entropy = self.get_entropy(lis_scores[i])
+            result.append(entropy)
+        return result
+
     def _process_gt(self, gt):
         if isinstance(gt, dict):
             result = []
             for seq_id in range(gt['input_ids'].shape[0]):
-                result.append(self.train_listeners[0]._tokenizer.decode(gt['input_ids'][seq_id]))
+                result.append(self.train_listeners[0]._tokenizer.decode(gt['input_ids'][seq_id]))  # self.train_listeners[0]._tokenizer is now CLIP's, not GPT2's
             return result
         else:
             return self.train_dataset.to_text(gt.argmax(-1))
@@ -179,7 +199,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
                 result.append(self.tokenizer.decode(gt['input_ids'][seq_id]))
             return result
 
-    def construct_lang_table(self, lang, gt):
+    def construct_lang_table_original(self, lang, gt):
         # import pdb; pdb.set_trace()
         data = []
         text_gts = self._process_gt(gt)
@@ -194,8 +214,56 @@ class SpeakerCLIPSystem(system.BasicSystem):
             })
         return pd.DataFrame(data)
 
+    def construct_lang_table(self, lang, gt, lis_scores):
+        # import pdb; pdb.set_trace()
+        data = []
+        text_gts = self._process_gt(gt)
+        if isinstance(gt, dict):
+            lang = {'input_ids': lang.argmax(-1)}
+        text_langs = self._process_gt_clip(lang) # self.train_dataset.to_text(lang.argmax(-1))
+        entropies = self.get_entropies(lis_scores)
+        for e, ls, l, gt in zip(entropies, lis_scores, text_langs, text_gts):
+            data.append({
+                'epoch': self.trainer.current_epoch,
+                'entropy': e,
+                'lis_scores': ls.tolist(),
+                'speaker_utterance': l,
+                'ground_truth': gt
+            })
+        return pd.DataFrame(data)
+
+    def get_teacher_forcing_loss(self, lang, img, targets):
+        # import pdb; pdb.set_trace()
+                             # listener, vocab, targets, sw):
+        loss = 0.0
+        # if args.teacher_forcing_loss:
+        # lang = process_utterances(listener=listener, lang=lang,
+        #                         vocab=vocab, sw=sw, args=args)
+        # length = listener.get_length(lang)
+        # lang_tokens = lang['input_ids']
+        input_ids = lang['input_ids']
+        lang_tokens = torch.cat((input_ids[:, :0], input_ids[:, 1:]), axis=1)
+        lang_onehot = F.one_hot(lang_tokens,
+                num_classes=self.model.vocab_size).cuda().float()
+        # length = listener.get_length(lang)
+        lang_out = self.model.teacher_forcing_forward(feats=img, seq=lang_onehot,
+                                        # length=length, 
+                                        targets=targets)
+        batch_size = lang_out.shape[0]
+        # max_len = constants.MAX_SEQ_LEN + 2
+        # lang_out = lang_out[:, :max_len, :].contiguous()
+        lang_out = lang_out.view(batch_size*lang_out.size(1), self.model.vocab_size)
+        # lang_onehot = lang_onehot[:, :max_len, :]
+        lang = lang_onehot.long().view(batch_size*lang_onehot.size(1), self.model.vocab_size)
+        loss_f = nn.CrossEntropyLoss()
+        loss = loss_f(lang_out.cuda(), torch.max(lang, 1)[1].cuda())
+        return loss
+
+
     def get_losses_for_batch(self, batch, batch_idx, which_listener, prefix):
         # import pdb; pdb.set_trace()
+        # if (batch_idx == 10) or (batch_idx == 11):
+        #     import pdb; pdb.set_trace()
         
         # imgs, labels, utterances = (
         imgs_speaker, labels, utterances, imgs_clip = (
@@ -219,7 +287,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         # lang, lang_length, loss = self.model(imgs_input.clone(), labels)
         lang, lang_length, loss, embedding_module = self.model(imgs_speaker, labels)
         # import pdb; pdb.set_trace()
-        df=self.construct_lang_table(lang=lang, gt=utterances)
+        # df=self.construct_lang_table(lang=lang, gt=utterances)
         # self.save_lang_table(df, batch_idx, prefix)
 
         """clip_scorer = self.clip_scorer(
@@ -263,15 +331,29 @@ class SpeakerCLIPSystem(system.BasicSystem):
                 lang_length=lang_length,
                 config=self.config
             )
-            avg_l0_scores = l0_scorer.get_average_l0_score()
+            # just renamedd avg_l0_scores to lis_scoers for consistency with clip flow above
+            lis_scores = l0_scorer.get_average_l0_score()
+            lis_pred = lis_scores.argmax(1)
+            loss = nn.CrossEntropyLoss()
+            losses = loss(lis_scores, labels)
+            acc = (lis_pred == labels).float().mean()
+            """avg_l0_scores = l0_scorer.get_average_l0_score()
             lis_pred = avg_l0_scores.argmax(1)
             loss = nn.CrossEntropyLoss()
             losses = loss(avg_l0_scores, labels)
-            acc = (lis_pred == labels).float().mean()
+            acc = (lis_pred == labels).float().mean()"""
+
+        df=self.construct_lang_table(lang=lang, gt=utterances, lis_scores=lis_scores)
+        self.save_lang_table(df, batch_idx, prefix)
+
+        # import pdb; pdb.set_trace()
+        teacher_forcing_loss = self.get_teacher_forcing_loss(utterances, imgs_speaker, labels)
+        teacher_forcing_loss = teacher_forcing_loss * 100
         
         return {
             'loss': losses,
             'acc': acc,
+            'teacher_forcing_loss': teacher_forcing_loss
         #     'lang_table': df
         #     'lang_table': wandb.Table(
         #         dataframe=self.construct_lang_table(lang=lang, gt=utterances)
@@ -279,14 +361,14 @@ class SpeakerCLIPSystem(system.BasicSystem):
         }
 
     def save_lang_table(self, df, batch_idx, prefix):
-        vocab_type = self.config.model_params.vocab
+        # vocab_type = self.config.model_params.vocab
         # listener_type=self.config.listener_params.type
         # if vocab_type == "shapeworld":
         #     vocab = "small_vocab"
         # elif vocab_type == "gpt2":
         #     vocab = "big_vocab"
         vocab = "clip_vocab"
-        exp_name = "experiment_1"
+        exp_name = "clip_loss_and_teacher_forcing_loss_sostokenremoved" # "loss_and_teacher_forcing_truncate"
         fpath = os.path.join(
                 constants.MAIN_REPO_DIR,
                 "clip",
@@ -317,14 +399,16 @@ class SpeakerCLIPSystem(system.BasicSystem):
         # import pdb; pdb.set_trace()
         result = self.get_losses_for_batch(batch, batch_idx, which_listener="train", prefix="train")
         loss = result['loss']
+        teacher_forcing_loss = result['teacher_forcing_loss']
         self.log_results(result=result, category="train")
-        return loss
+        return loss + teacher_forcing_loss
 
     def test_step(self, batch, batch_idx):
         result = self.get_losses_for_batch(batch, batch_idx, which_listener="test", prefix="test")
         loss = result['loss']
-        self.log_results(result=result, category="test")
-        return loss
+        teacher_forcing_loss = result['teacher_forcing_loss']
+        # self.log_results(result=result, category="test")
+        return loss + teacher_forcing_loss
 
     def validation_step(self, batch, batch_idx):
         for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]:  # ["trainL0_trainD", "trainL0_valD"]:
@@ -332,8 +416,9 @@ class SpeakerCLIPSystem(system.BasicSystem):
             result = self.get_losses_for_batch(
                 batch[setting], batch_idx, which_listener=which_listener, prefix=setting)
             loss = result['loss']
+            teacher_forcing_loss = result['teacher_forcing_loss']
             self.log_results(result=result, category=setting)
-        return loss
+        return loss + teacher_forcing_loss
 
     def val_dataloader(self):
         # train L0 - train D

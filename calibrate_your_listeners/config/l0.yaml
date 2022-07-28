@@ -24,7 +24,7 @@ dataset_params:
   multi_processing: False # True
   data_type: reference
   image_type: single
-  data_dir: data/shapeworld
+  data_dir: clip/sw # data/shapeworld # clip/sw 
   num_shapeworld_tokens: 0
 training_params:
   gpu_device: 8
@@ -33,5 +33,5 @@ training_params:
   seed: 13
   cuda: True
 optim_params:
-  batch_size: 32
+  batch_size: 16
   learning_rate: 0.0001

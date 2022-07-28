@@ -5,8 +5,8 @@ import torch.nn as nn
 from torch.nn import functional as F
 from calibrate_your_listeners.src.models import (
     listener,
-    vision,
     rnn_encoder,
+    vision_clip,
 )
 
 PAD_IDX = 0
@@ -30,7 +30,7 @@ class DropoutListener(listener.Listener): # L_0
         self.lang_model = rnn_encoder.RNNEncoder(self.embedding, dropout=self.dropout_rate) # g
 
     def init_image_feature_model(self):
-        self.feat_model = vision.Conv4(dropout=self.dropout_rate)
+        self.feat_model = vision_clip.Conv4(dropout=self.dropout_rate)
 
     @property
     def is_old(self):

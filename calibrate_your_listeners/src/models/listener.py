@@ -5,8 +5,8 @@ from torch.nn import functional as F
 from transformers import GPT2Tokenizer, CLIPTextConfig, CLIPTokenizer
 
 from calibrate_your_listeners.src.models import (
-    vision,
     rnn_encoder,
+    vision_clip, # errors come up if we change to vision_clip # vision_clip was created for speaker_clip.py
 )
 from calibrate_your_listeners import constants
 
@@ -57,14 +57,15 @@ class Listener(nn.Module): # L_0
             self.embedding, is_old=self._is_old) # g
 
     def init_image_feature_model(self):
-        self.feat_model = vision.Conv4() # f_L(I_t)
+        self.feat_model = vision_clip.Conv4() # f_L(I_t)
 
     @property
     def is_old(self):
         return self._is_old
 
+    # this tokenize function is also in shapeworld.py
     def tokenize(self, utterances):
-        import pdb; pdb.set_trace() # does not work
+        # import pdb; pdb.set_trace() # does not work
         encoded_input = self._tokenizer(
             utterances,
             padding=True,
@@ -78,8 +79,10 @@ class Listener(nn.Module): # L_0
             self._end_token for _ in range(self._max_seq_len-seq_length)]).unsqueeze(0)
         eos_attention = torch.tensor([0 for _ in range(self._max_seq_len-seq_length)]).unsqueeze(0)"""
         eos_input_ids = torch.tensor([
-            self._end_token for _ in range(self.clip_text_config.max_position_embeddings-seq_length)]).unsqueeze(0)
-        eos_attention = torch.tensor([0 for _ in range(self.clip_text_config.max_position_embeddings-seq_length)]).unsqueeze(0)
+            self._end_token for _ in range(self._max_seq_len + 2 - seq_length)]).unsqueeze(0)
+            # self._end_token for _ in range(self.clip_text_config.max_position_embeddings-seq_length)]).unsqueeze(0)
+        # eos_attention = torch.tensor([0 for _ in range(self.clip_text_config.max_position_embeddings-seq_length)]).unsqueeze(0)
+        eos_attention = torch.tensor([0 for _ in range(self._max_seq_len + 2 -seq_length)]).unsqueeze(0)
         # Add an EOS token at the very end if it doesn't already exist
         # and add attention to ignore the EOS tokens
         # batch_size x 1
@@ -138,6 +141,7 @@ class Listener(nn.Module): # L_0
         """
         # import pdb; pdb.set_trace()
         # Embed features, f_L(I_t)
+        # import pdb; pdb.set_trace()
         feats_emb = self.embed_features(feats)
         # Image -> joint space if using a small space
         if self.image2Joint is not None:

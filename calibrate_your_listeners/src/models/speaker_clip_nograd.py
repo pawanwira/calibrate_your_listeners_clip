@@ -7,7 +7,7 @@ from transformers import GPT2Tokenizer, CLIPTextConfig
 import clip
 
 from calibrate_your_listeners.src.models import (
-    vision
+    vision_clip
 )
 from calibrate_your_listeners import constants
 
@@ -62,7 +62,7 @@ class Speaker(nn.Module): # L_0
         self.hidden2vocab = nn.Linear(self.hidden_size, self.vocab_size)
 
     def init_image_feature_model(self):
-        self.feat_model = vision.Conv4() # f_L(I_t)
+        self.feat_model = vision_clip.Conv4() # f_L(I_t)
 
     @property
     def is_old(self):
