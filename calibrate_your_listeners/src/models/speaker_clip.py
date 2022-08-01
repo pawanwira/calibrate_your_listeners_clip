@@ -53,7 +53,8 @@ class Speaker(nn.Module): # L_0
         # self.hidden_size = self.clip_text_config.hidden_size
         self.hidden_size = self.config.model_params.hidden_size
         # self.embedding = nn.Embedding(self.vocab_size, self.hidden_size)
-        self.embedding = nn.Embedding(self.vocab_size, self.clip_text_config.hidden_size) 
+        # self.embedding = nn.Embedding(self.vocab_size, self.clip_text_config.hidden_size) 
+        self.embedding = nn.Embedding(self.vocab_size, 50) 
 
         self.init_lang_model()
         self.init_image_feature_model()
@@ -129,6 +130,17 @@ class Speaker(nn.Module): # L_0
             })
         return pd.DataFrame(data)"""
 
+    # lang is onehots (e.g. onehots from teacher_forcing_forward)
+    def insert_sos_token(self, lang, batch_size):
+        lang_perm = lang.permute(1, 0, 2)
+        sos_onehot = torch.zeros(batch_size, 1, self.clip_text_config.vocab_size, device=lang.device)
+        sos_onehot[:, 0, self._start_token] = 1.0
+        pad_onehot_perm = sos_onehot.permute(1, 0, 2)
+        lang_padded = lang_perm
+        lang_padded = torch.cat((pad_onehot_perm, lang_padded))
+        lang_padded_perm = lang_padded.permute(1, 0, 2)
+        return lang_padded_perm
+    
     # y is targets
     def teacher_forcing_forward(self, feats, seq, targets): # length, targets): # y):
         # import pdb; pdb.set_trace()
@@ -153,7 +165,10 @@ class Speaker(nn.Module): # L_0
 
         # reorder from (L,B,D) to (B,L,D)
         # (batch_size, max_sequence_length, hidden unit size)
-        output = output.transpose(0, 1)
+        output = output.transpose(0, 1) 
+        ### output_presoftmax = self.hidden2vocab(output) 
+        ### onehots = F.gumbel_softmax(output_presoftmax, tau=1.0, hard=True)
+        ### onehots_with_sos = self.insert_sos_token(onehots, batch_size)
 
         max_length = output.size(1)
         output_2d = output.reshape(batch_size * max_length, -1)
@@ -164,7 +179,7 @@ class Speaker(nn.Module): # L_0
         lang_tensor = outputs_2d.reshape(batch_size, max_length, self.vocab_size)
         # if lang_tensor.size(1) != 77:
         #     import pdb; pdb.set_trace()
-        return lang_tensor
+        return lang_tensor ###, onehots_with_sos
 
     def forward(self, feats, targets, activation='gumbel', tau=1.0, length_penalty=False):
         # import pdb; pdb.set_trace()

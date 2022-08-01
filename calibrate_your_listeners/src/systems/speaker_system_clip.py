@@ -232,7 +232,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
             })
         return pd.DataFrame(data)
 
-    def get_teacher_forcing_loss(self, lang, img, targets):
+    def get_teacher_forcing_loss(self, gt, img, targets):
         # import pdb; pdb.set_trace()
                              # listener, vocab, targets, sw):
         loss = 0.0
@@ -241,12 +241,15 @@ class SpeakerCLIPSystem(system.BasicSystem):
         #                         vocab=vocab, sw=sw, args=args)
         # length = listener.get_length(lang)
         # lang_tokens = lang['input_ids']
-        input_ids = lang['input_ids']
-        lang_tokens = torch.cat((input_ids[:, :0], input_ids[:, 1:]), axis=1)
-        lang_onehot = F.one_hot(lang_tokens,
+        input_ids = gt['input_ids']
+        gt_tokens = torch.cat((input_ids[:, :0], input_ids[:, 1:]), axis=1)
+        gt_onehot = F.one_hot(gt_tokens,
                 num_classes=self.model.vocab_size).cuda().float()
         # length = listener.get_length(lang)
-        lang_out = self.model.teacher_forcing_forward(feats=img, seq=lang_onehot,
+        
+        # predicted_onehots below can be fed into CLIP listener scores
+        lang_out = self.model.teacher_forcing_forward(feats=img, seq=gt_onehot,
+        # lang_out, tf_onehots = self.model.teacher_forcing_forward(feats=img, seq=gt_onehot,
                                         # length=length, 
                                         targets=targets)
         batch_size = lang_out.shape[0]
@@ -254,12 +257,117 @@ class SpeakerCLIPSystem(system.BasicSystem):
         # lang_out = lang_out[:, :max_len, :].contiguous()
         lang_out = lang_out.view(batch_size*lang_out.size(1), self.model.vocab_size)
         # lang_onehot = lang_onehot[:, :max_len, :]
-        lang = lang_onehot.long().view(batch_size*lang_onehot.size(1), self.model.vocab_size)
+        gt = gt_onehot.long().view(batch_size*gt_onehot.size(1), self.model.vocab_size)
         loss_f = nn.CrossEntropyLoss()
-        loss = loss_f(lang_out.cuda(), torch.max(lang, 1)[1].cuda())
-        return loss
+        tf_loss = loss_f(lang_out.cuda(), torch.max(gt, 1)[1].cuda())
+        return tf_loss # , tf_onehots
 
+    def get_losses_for_batch_teacher_forcing(self, batch, batch_idx, which_listener, prefix):
+        # import pdb; pdb.set_trace()
+        # if (batch_idx == 10) or (batch_idx == 11):
+        #     import pdb; pdb.set_trace()
+        
+        # imgs, labels, utterances = (
+        imgs_speaker, labels, utterances, imgs_clip = (
+            # batch['imgs'], batch['label'].argmax(-1).long(), batch['utterance'])
+            batch['imgs'].float(), batch['label'].argmax(-1).long(), batch['utterance'], batch['imgs_original'])
+        
+        """
+        imgs_input = batch['imgs'].cpu().detach().numpy().transpose(0, 1, 4, 2, 3) # (0, 1, 3, 4, 2)
+        imgs_input = torch.Tensor(imgs_input)
+        imgs_input = imgs_input.contiguous().to(torch.device('cuda:0'))
+        """
 
+        """
+        imgs = imgs_input.clone().cpu().detach().numpy().transpose(0, 1, 3, 4, 2)
+        imgs = torch.Tensor(imgs)
+        imgs = imgs.clone().contiguous().to(torch.device('cuda:0'))
+        """
+
+        teacher_forcing_loss, teacher_forcing_onehots = self.get_teacher_forcing_loss(utterances, imgs_speaker, labels)
+        lang = teacher_forcing_onehots
+
+        # imgs_input = batch['imgs'].transpose(0, 1, 4, 2, 3)
+        # lang, lang_length, loss = self.model(imgs_input, labels)
+        # lang, lang_length, loss = self.model(imgs_input.clone(), labels)
+
+        # lang, lang_length, loss, embedding_module = self.model(imgs_speaker, labels)
+        lang_nontf, lang_length, loss, embedding_module = self.model(imgs_speaker, labels) # TEMP EDIT: jul 29
+        
+        # import pdb; pdb.set_trace()
+        # df=self.construct_lang_table(lang=lang, gt=utterances)
+        # self.save_lang_table(df, batch_idx, prefix)
+
+        """clip_scorer = self.clip_scorer(
+            listener=self.clip_listener,
+            imgs=imgs_clip,
+            # df=df,
+            preprocess=self.preprocess,
+            vocab_type=self.config.model_params.vocab,
+            lang=lang,
+            lang_length=lang_length,
+            embedding_module=embedding_module
+        )
+        lis_scores = clip_scorer.listener_scores
+        loss = nn.CrossEntropyLoss()
+        lis_pred = lis_scores.argmax(1)
+        losses = loss(lis_scores, labels)
+        acc = (lis_pred == labels).float().mean()"""
+
+        # import pdb; pdb.set_trace()
+        if which_listener == "train":
+            clip_scorer = self.clip_scorer(
+                listener=self.clip_listener,
+                imgs=imgs_clip,
+                tokenizer = self.tokenizer,
+                preprocess=self.preprocess,
+                vocab_type=self.config.model_params.vocab,
+                lang=lang,
+                lang_length=lang_length,
+                embedding_module=embedding_module
+            )
+            lis_scores = clip_scorer.listener_scores
+            loss = nn.CrossEntropyLoss()
+            lis_pred = lis_scores.argmax(1)
+            losses = loss(lis_scores, labels)
+            acc = (lis_pred == labels).float().mean()
+        else:
+            l0_scorer = self.l0_scorer(
+                listeners=self.val_listeners,
+                imgs=imgs_speaker,
+                lang=lang,
+                lang_length=lang_length,
+                config=self.config
+            )
+            # just renamed avg_l0_scores to lis_scorers for consistency with clip flow above
+            lis_scores = l0_scorer.get_average_l0_score()
+            lis_pred = lis_scores.argmax(1)
+            loss = nn.CrossEntropyLoss()
+            losses = loss(lis_scores, labels)
+            acc = (lis_pred == labels).float().mean()
+            """avg_l0_scores = l0_scorer.get_average_l0_score()
+            lis_pred = avg_l0_scores.argmax(1)
+            loss = nn.CrossEntropyLoss()
+            losses = loss(avg_l0_scores, labels)
+            acc = (lis_pred == labels).float().mean()"""
+
+        df=self.construct_lang_table(lang=lang, gt=utterances, lis_scores=lis_scores)
+        self.save_lang_table(df, batch_idx, prefix)
+
+        # import pdb; pdb.set_trace()
+        teacher_forcing_loss = self.get_teacher_forcing_loss(utterances, imgs_speaker, labels)
+        # teacher_forcing_loss = teacher_forcing_loss * 100
+        
+        return {
+            'loss': losses,
+            'acc': acc,
+            'teacher_forcing_loss': teacher_forcing_loss
+        #     'lang_table': df
+        #     'lang_table': wandb.Table(
+        #         dataframe=self.construct_lang_table(lang=lang, gt=utterances)
+        #     )
+        }
+   
     def get_losses_for_batch(self, batch, batch_idx, which_listener, prefix):
         # import pdb; pdb.set_trace()
         # if (batch_idx == 10) or (batch_idx == 11):
@@ -311,7 +419,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
             clip_scorer = self.clip_scorer(
                 listener=self.clip_listener,
                 imgs=imgs_clip,
-                # df=df,
+                tokenizer = self.tokenizer,
                 preprocess=self.preprocess,
                 vocab_type=self.config.model_params.vocab,
                 lang=lang,
@@ -331,7 +439,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
                 lang_length=lang_length,
                 config=self.config
             )
-            # just renamedd avg_l0_scores to lis_scoers for consistency with clip flow above
+            # just renamed avg_l0_scores to lis_scorers for consistency with clip flow above
             lis_scores = l0_scorer.get_average_l0_score()
             lis_pred = lis_scores.argmax(1)
             loss = nn.CrossEntropyLoss()
@@ -347,13 +455,14 @@ class SpeakerCLIPSystem(system.BasicSystem):
         self.save_lang_table(df, batch_idx, prefix)
 
         # import pdb; pdb.set_trace()
-        teacher_forcing_loss = self.get_teacher_forcing_loss(utterances, imgs_speaker, labels)
-        teacher_forcing_loss = teacher_forcing_loss * 100
+        # teacher_forcing_loss, teacher_forcing_onehots = self.get_teacher_forcing_loss(utterances, imgs_speaker, labels)
+        # teacher_forcing_loss = self.get_teacher_forcing_loss(utterances, imgs_speaker, labels)
+        # teacher_forcing_loss = teacher_forcing_loss * 100
         
         return {
             'loss': losses,
             'acc': acc,
-            'teacher_forcing_loss': teacher_forcing_loss
+        #     'teacher_forcing_loss': teacher_forcing_loss
         #     'lang_table': df
         #     'lang_table': wandb.Table(
         #         dataframe=self.construct_lang_table(lang=lang, gt=utterances)
@@ -368,7 +477,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         # elif vocab_type == "gpt2":
         #     vocab = "big_vocab"
         vocab = "clip_vocab"
-        exp_name = "clip_loss_and_teacher_forcing_loss_sostokenremoved" # "loss_and_teacher_forcing_truncate"
+        exp_name = "clip_pragmatic_loss_batchsize8_lr0-00001" 
         fpath = os.path.join(
                 constants.MAIN_REPO_DIR,
                 "clip",
@@ -399,26 +508,33 @@ class SpeakerCLIPSystem(system.BasicSystem):
         # import pdb; pdb.set_trace()
         result = self.get_losses_for_batch(batch, batch_idx, which_listener="train", prefix="train")
         loss = result['loss']
-        teacher_forcing_loss = result['teacher_forcing_loss']
+        # teacher_forcing_loss = result['teacher_forcing_loss']
         self.log_results(result=result, category="train")
-        return loss + teacher_forcing_loss
+        # return loss + teacher_forcing_loss
+        # return teacher_forcing_loss
+        return loss
 
     def test_step(self, batch, batch_idx):
         result = self.get_losses_for_batch(batch, batch_idx, which_listener="test", prefix="test")
         loss = result['loss']
-        teacher_forcing_loss = result['teacher_forcing_loss']
+        # teacher_forcing_loss = result['teacher_forcing_loss']
         # self.log_results(result=result, category="test")
-        return loss + teacher_forcing_loss
+        # return loss + teacher_forcing_loss
+        # return teacher_forcing_loss
+        return loss
 
     def validation_step(self, batch, batch_idx):
         for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]:  # ["trainL0_trainD", "trainL0_valD"]:
+            # import pdb; pdb.set_trace()
             which_listener = "train" if "trainL0" in setting else "val"
             result = self.get_losses_for_batch(
                 batch[setting], batch_idx, which_listener=which_listener, prefix=setting)
             loss = result['loss']
-            teacher_forcing_loss = result['teacher_forcing_loss']
+            # teacher_forcing_loss = result['teacher_forcing_loss']
             self.log_results(result=result, category=setting)
-        return loss + teacher_forcing_loss
+        # return loss + teacher_forcing_loss
+        # return teacher_forcing_loss
+        return loss
 
     def val_dataloader(self):
         # train L0 - train D
