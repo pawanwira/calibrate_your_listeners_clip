@@ -4,7 +4,7 @@ from PIL import Image
 from torch import nn
 import clip
 from transformers import CLIPTextConfig
-from calibrate_your_listeners.src.models import speaker_clip
+from calibrate_your_listeners.src.models import speaker_gpt
 from calibrate_your_listeners import constants
 from transformers import CLIPTokenizer
 
@@ -83,6 +83,7 @@ class CLIPListenerScores(object):
         lang_padded_perm = lang_padded.permute(1, 0, 2)
         return lang_padded_perm
 
+    # custom v2
     def _calculate_listener_scores(self):
         # import pdb; pdb.set_trace()
         lis_scores = []
@@ -125,7 +126,7 @@ class CLIPListenerScores(object):
         lis_scores_final = torch.stack(lis_scores)
         return lis_scores_final
     
-    def _calculate_listener_scores_test(self):
+    def _calculate_listener_scores_test_with_cliptokenize(self):
         # import pdb; pdb.set_trace()
         lis_scores = []
         # import pdb; pdb.set_trace()
@@ -169,6 +170,7 @@ class CLIPListenerScores(object):
         lis_scores_final = torch.stack(lis_scores)
         return lis_scores_final
 
+    # custom v1
     def _calculate_listener_scores_customv1(self):
         # import pdb; pdb.set_trace()
         lis_scores = []
@@ -190,7 +192,8 @@ class CLIPListenerScores(object):
                 image_features = self.listener.encode_image(images).float()
                 utterance_features = self.listener.encode_text(utterance_tokens).float()"""
             # max_idx = torch.tensor(np.argmax([self.lang[i][j].argmax().item() for j in range(self.clip_text_config.max_position_embeddings)])).unsqueeze(0)
-            max_idx = torch.tensor(np.argmax([self.lang_padded[i][j].argmax().item() for j in range(int(self.lang_length[i].item()))])).unsqueeze(0)
+            # max_idx = torch.tensor(np.argmax([self.lang_padded[i][j].argmax().item() for j in range(int(self.lang_length[i].item()))])).unsqueeze(0)
+            max_idx = torch.tensor(np.argmax([self.lang_padded[i][j].argmax().item() for j in range(int(self.lang_length[i].item()) + 1)])).unsqueeze(0)
             # seq = self._pad_lang(self.lang[i], self.lang_length[i]) 
             # embed_seq = seq @ self.embedding.weight
             embed_seq = self.lang_padded[i] @ self.embedding.weight

@@ -1,10 +1,11 @@
 from calibrate_your_listeners.src.models import vision_clip
 import numpy as np
+from PIL import Image
 import torch
 import torch.nn as nn
 import pandas as pd
 from torch.nn import functional as F
-from transformers import GPT2Tokenizer, CLIPTextConfig
+from transformers import GPT2LMHeadModel, GPT2Tokenizer, CLIPTextConfig, GPT2Config
 import clip
 
 from calibrate_your_listeners.src.models import (
@@ -12,12 +13,58 @@ from calibrate_your_listeners.src.models import (
 )
 from calibrate_your_listeners import constants
 
+class Speaker(nn.Module):
+    def __init__(self, config):
+        super(Speaker, self).__init__()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.config = config
+        self._is_old = (self.config.model_params.vocab == "shapeworld")
+        self.gpt2_config = GPT2Config()
+
+        self.initialize_modules()
+        
+    def initialize_modules(self):
+        # GPT2
+        self.gpt = GPT2LMHeadModel.from_pretrained('gpt2')
+        self.gpt_embedding_size = self.gpt.transformer.wte.weight.shape[1]  # 768
+        self.prefix_length = self.config.model_params.prefix_length
+        self.prefix_size = 512
+
+        # CLIP
+        self.clip_model, self.clip_preprocess = clip.load("ViT-B/32")
+        self.clip_listener.cuda().eval()  # CHECK: necessary or not?
+        self.freeze_model(self.clip_listener)
+        self.clip_project = nn.Linear(self.prefix_size, self.gpt_embedding_size * self.prefix_length)
+
+    def _preprocess(self, image):
+        return self.clip_preprocess(Image.fromarray(np.uint8(image.cpu())).convert('RGB'))
+   
+    def set_vocab(self):
+        pass
+
+    def embed_imgs(self, imgs_sets):
+        # 1 img set (from one reference game) consists of 3 imgs
+        imgs_preprocessed = torch.tensor(np.stack([self._preprocess(img_set[0]) for img_set in imgs_sets])).cuda()
+        with torch.no_grad():
+            prefix = self.clip_model.encode_image(imgs_preprocessed).to(
+                self.device, dtype=torch.float32
+            )
+        prefix_projections = self.clip_project(prefix).view(-1, self.prefix_length, self.gpt_embedding_size)  # CHECK: first dim should be batch size?
+        return prefix_projections
+
+    def forward(self, imgs, utterances):        
+        embedding_text = self.gpt.transformer.wte(utterances)  # CHECK: can we pass utterances directly into wte?
+        prefix_projections = self.embed_imgs(imgs)
+        embedding_cat = torch.cat((prefix_projections, embedding_text), dim=1)
+        outputs = self.gpt(inputs_embeds=embedding_cat)
+        return outputs
+
 def to_onehot(y, n=3):
     y_onehot = torch.zeros(y.shape[0], n).to(y.device)
     y_onehot.scatter_(1, y.view(-1, 1), 1)
     return y_onehot
 
-class Speaker(nn.Module): # L_0
+class OriginalSpeaker(nn.Module): # L_0
     def __init__(self, config):
 
         super(Speaker, self).__init__()
@@ -166,9 +213,9 @@ class Speaker(nn.Module): # L_0
         # reorder from (L,B,D) to (B,L,D)
         # (batch_size, max_sequence_length, hidden unit size)
         output = output.transpose(0, 1) 
-        output_presoftmax = self.hidden2vocab(output) 
-        onehots = F.gumbel_softmax(output_presoftmax, tau=1.0, hard=True)
-        onehots_with_sos = self.insert_sos_token(onehots, batch_size)
+        ### output_presoftmax = self.hidden2vocab(output) 
+        ### onehots = F.gumbel_softmax(output_presoftmax, tau=1.0, hard=True)
+        ### onehots_with_sos = self.insert_sos_token(onehots, batch_size)
 
         max_length = output.size(1)
         output_2d = output.reshape(batch_size * max_length, -1)
@@ -179,7 +226,7 @@ class Speaker(nn.Module): # L_0
         lang_tensor = outputs_2d.reshape(batch_size, max_length, self.vocab_size)
         # if lang_tensor.size(1) != 77:
         #     import pdb; pdb.set_trace()
-        return lang_tensor, onehots_with_sos
+        return lang_tensor ###, onehots_with_sos
 
     def forward(self, feats, targets, activation='gumbel', tau=1.0, length_penalty=False):
         # import pdb; pdb.set_trace()

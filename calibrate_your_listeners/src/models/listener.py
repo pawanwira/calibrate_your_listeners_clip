@@ -82,7 +82,7 @@ class Listener(nn.Module): # L_0
             self._end_token for _ in range(self._max_seq_len + 2 - seq_length)]).unsqueeze(0)
             # self._end_token for _ in range(self.clip_text_config.max_position_embeddings-seq_length)]).unsqueeze(0)
         # eos_attention = torch.tensor([0 for _ in range(self.clip_text_config.max_position_embeddings-seq_length)]).unsqueeze(0)
-        eos_attention = torch.tensor([0 for _ in range(self._max_seq_len + 2 -seq_length)]).unsqueeze(0)
+        eos_attention = torch.tensor([0 for _ in range(self._max_seq_len + 2 - seq_length)]).unsqueeze(0)
         # Add an EOS token at the very end if it doesn't already exist
         # and add attention to ignore the EOS tokens
         # batch_size x 1

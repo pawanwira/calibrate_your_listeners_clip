@@ -77,13 +77,9 @@ class Shapeworld(data.Dataset):
             self.config.dataset_params.data_dir
         )
         self.config.dataset_params.data_dir = self.directory
-
-        # TEMP START
-        self._tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
         self._max_seq_len = constants.MAX_SEQ_LEN
-        self.clip_text_config = CLIPTextConfig()
-        self._end_token = 49407
-        # TEMP END
+        
+        self.set_vocab()
 
         # Data directory information
         if self.config.model_params.name == "l0":
@@ -110,6 +106,17 @@ class Shapeworld(data.Dataset):
         self.labels = self.raw_data['labels']
         self.imgs_original = self.raw_data['imgs_original']
 
+    def set_vocab(self):
+        self._tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
+        self.clip_text_config = CLIPTextConfig()
+        self._end_token = 49407
+
+        # Adding padding token to GPT tokenizer
+        """self._tokenizer.pad_token = self._tokenizer.eos_token
+        self._start_token = None
+        self._end_token = self._tokenizer.eos_token_id
+        self._torch_end_token = torch.tensor(self._end_token).to(self.device)"""
+    
     def load_vocab(self):
         vocab_fpath = os.path.join(self.directory, 'vocab.pt')
         print(f'[ config ] vocab fpath at {vocab_fpath}')
@@ -226,7 +233,7 @@ class Shapeworld(data.Dataset):
             self._end_token for _ in range(self._max_seq_len + 2 - seq_length)]).unsqueeze(0)
             # self._end_token for _ in range(self.clip_text_config.max_position_embeddings-seq_length)]).unsqueeze(0)
         # eos_attention = torch.tensor([0 for _ in range(self.clip_text_config.max_position_embeddings-seq_length)]).unsqueeze(0)
-        eos_attention = torch.tensor([0 for _ in range(self._max_seq_len + 2 -seq_length)]).unsqueeze(0)
+        eos_attention = torch.tensor([0 for _ in range(self._max_seq_len + 2 - seq_length)]).unsqueeze(0)
         # Add an EOS token at the very end if it doesn't already exist
         # and add attention to ignore the EOS tokens
         # batch_size x 1
