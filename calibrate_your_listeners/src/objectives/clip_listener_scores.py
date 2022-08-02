@@ -81,12 +81,13 @@ class CLIPListenerScores(object):
             max_idx = torch.tensor(np.argmax([self.lang_padded[i][j].argmax().item() for j in range(int(self.lang_length[i].item()))])).unsqueeze(0)
             # seq = self._pad_lang(self.lang[i], self.lang_length[i]) 
             # embed_seq = seq @ self.embedding.weight
-            embed_seq = self.lang_padded[i] @ self.embedding.weight
+            # embed_seq = self.lang_padded[i] @ self.embedding.weight
             
             image_features = self.listener.encode_image(images).float()
             # utterance_features = self.listener.encode_text(utterance_tokens).float()
             # utterance_features = self.encode_text(self.lang[i]).float() # clip update
-            utterance_features = self.listener.encode_text(embed_seq, max_idx).float() # clip update
+            # utterance_features = self.listener.encode_text(embed_seq, max_idx).float() # clip update
+            utterance_features = self.listener.encode_text(self.lang_padded[i], max_idx).float()
             # image_features /= image_features.clone().norm(dim=-1, keepdim=True)
             image_features = image_features.clone() / image_features.clone().norm(dim=-1, keepdim=True)
             # utterance_features /= utterance_features.clone().norm(dim=-1, keepdim=True)
