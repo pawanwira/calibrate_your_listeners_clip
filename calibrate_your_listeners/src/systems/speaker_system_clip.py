@@ -135,7 +135,8 @@ class SpeakerCLIPSystem(system.BasicSystem):
             listener = self._load_listener(
                 listener_type=self.config.listener_params.type,
                 vocab_type= 'big_clip_vocab', # self.config.model_params.vocab,
-                listener_idx = listener_idx + 7 # + 5 # + 1
+                listener_idx = listener_idx + 1
+                # listener_idx = listener_idx + 7 # + 5 # + 1 # TODO: change back to this to get listeners trained on large SW images
                 )
             self.freeze_model(listener)
             self.train_listeners.append(listener)
@@ -151,7 +152,8 @@ class SpeakerCLIPSystem(system.BasicSystem):
             listener = self._load_listener(
                 listener_type=self.config.listener_params.type,
                 vocab_type='big_clip_vocab', # self.config.model_params.vocab,
-                listener_idx = listener_idx + 7 # + 5 # + 1
+                listener_idx = listener_idx + 1
+                # listener_idx = listener_idx + 7 # + 5 # + 1 # TODO: change back to this to get listeners trained on large SW images
                 )
             self.freeze_model(listener)
             self.val_listeners.append(listener)
@@ -347,13 +349,13 @@ class SpeakerCLIPSystem(system.BasicSystem):
         self.save_lang_table(df, batch_idx, prefix)
 
         # import pdb; pdb.set_trace()
-        teacher_forcing_loss = self.get_teacher_forcing_loss(utterances, imgs_speaker, labels)
-        teacher_forcing_loss = teacher_forcing_loss * 100
+        # teacher_forcing_loss = self.get_teacher_forcing_loss(utterances, imgs_speaker, labels)
+        # teacher_forcing_loss = teacher_forcing_loss * 100
         
         return {
             'loss': losses,
             'acc': acc,
-            'teacher_forcing_loss': teacher_forcing_loss
+        #     'teacher_forcing_loss': teacher_forcing_loss
         #     'lang_table': df
         #     'lang_table': wandb.Table(
         #         dataframe=self.construct_lang_table(lang=lang, gt=utterances)
@@ -368,7 +370,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         # elif vocab_type == "gpt2":
         #     vocab = "big_vocab"
         vocab = "clip_vocab"
-        exp_name = "clip_loss_and_teacher_forcing_loss_sostokenremoved" # "loss_and_teacher_forcing_truncate"
+        exp_name = "test" 
         fpath = os.path.join(
                 constants.MAIN_REPO_DIR,
                 "clip",
@@ -399,16 +401,18 @@ class SpeakerCLIPSystem(system.BasicSystem):
         # import pdb; pdb.set_trace()
         result = self.get_losses_for_batch(batch, batch_idx, which_listener="train", prefix="train")
         loss = result['loss']
-        teacher_forcing_loss = result['teacher_forcing_loss']
+        # teacher_forcing_loss = result['teacher_forcing_loss']
         self.log_results(result=result, category="train")
-        return loss + teacher_forcing_loss
+        # return loss + teacher_forcing_loss
+        return loss
 
     def test_step(self, batch, batch_idx):
         result = self.get_losses_for_batch(batch, batch_idx, which_listener="test", prefix="test")
         loss = result['loss']
-        teacher_forcing_loss = result['teacher_forcing_loss']
+        # teacher_forcing_loss = result['teacher_forcing_loss']
         # self.log_results(result=result, category="test")
-        return loss + teacher_forcing_loss
+        # return loss + teacher_forcing_loss
+        return loss
 
     def validation_step(self, batch, batch_idx):
         for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]:  # ["trainL0_trainD", "trainL0_valD"]:
@@ -416,9 +420,10 @@ class SpeakerCLIPSystem(system.BasicSystem):
             result = self.get_losses_for_batch(
                 batch[setting], batch_idx, which_listener=which_listener, prefix=setting)
             loss = result['loss']
-            teacher_forcing_loss = result['teacher_forcing_loss']
+            # teacher_forcing_loss = result['teacher_forcing_loss']
             self.log_results(result=result, category=setting)
-        return loss + teacher_forcing_loss
+        # return loss + teacher_forcing_loss
+        return loss
 
     def val_dataloader(self):
         # train L0 - train D
