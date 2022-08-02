@@ -265,7 +265,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
     # TEACHER FORCING
     def get_losses_for_batch_tf(self, batch, batch_idx, which_listener, prefix):
         # import pdb; pdb.set_trace()
-        
+
         # imgs, labels, utterances = (
         imgs_speaker, labels, utterances, imgs_clip = (
             # batch['imgs'], batch['label'].argmax(-1).long(), batch['utterance'])

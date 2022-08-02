@@ -4,7 +4,7 @@ from PIL import Image
 from torch import nn
 import clip
 from transformers import CLIPTextConfig
-from calibrate_your_listeners.src.models import speaker_gpt
+from calibrate_your_listeners.src.models import speaker_clip
 from calibrate_your_listeners import constants
 from transformers import CLIPTokenizer
 
@@ -105,7 +105,7 @@ class CLIPListenerScores(object):
                 image_features = self.listener.encode_image(images).float()
                 utterance_features = self.listener.encode_text(utterance_tokens).float()"""
             # max_idx = torch.tensor(np.argmax([self.lang[i][j].argmax().item() for j in range(self.clip_text_config.max_position_embeddings)])).unsqueeze(0)
-            max_idx = torch.tensor(np.argmax([self.lang_padded[i][j].argmax().item() for j in range(int(self.lang_length[i].item()) + 1)])).unsqueeze(0)
+            max_idx = torch.tensor(np.argmax([self.lang_padded[i][j].argmax().item() for j in range(int(self.lang_length[i].item()))])).unsqueeze(0)
             # seq = self._pad_lang(self.lang[i], self.lang_length[i]) 
             # embed_seq = seq @ self.embedding.weight
             ### embed_seq = self.lang_padded[i] @ self.embedding.weight
