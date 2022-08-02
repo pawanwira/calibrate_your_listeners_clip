@@ -13,6 +13,7 @@ model_params:
   hidden_size: 100
   shapeworld_word2emb_size: 50
   dropout_rate: 0.0
+  prefix_length: 10
 listener_params:
   type: normal # vs dropout 
   ensemble_size: 1

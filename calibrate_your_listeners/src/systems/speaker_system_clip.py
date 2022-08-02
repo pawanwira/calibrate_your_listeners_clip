@@ -265,55 +265,16 @@ class SpeakerCLIPSystem(system.BasicSystem):
     # TEACHER FORCING
     def get_losses_for_batch_tf(self, batch, batch_idx, which_listener, prefix):
         # import pdb; pdb.set_trace()
-        # if (batch_idx == 10) or (batch_idx == 11):
-        #     import pdb; pdb.set_trace()
         
         # imgs, labels, utterances = (
         imgs_speaker, labels, utterances, imgs_clip = (
             # batch['imgs'], batch['label'].argmax(-1).long(), batch['utterance'])
             batch['imgs'].float(), batch['label'].argmax(-1).long(), batch['utterance'], batch['imgs_original'])
-        
-        """
-        imgs_input = batch['imgs'].cpu().detach().numpy().transpose(0, 1, 4, 2, 3) # (0, 1, 3, 4, 2)
-        imgs_input = torch.Tensor(imgs_input)
-        imgs_input = imgs_input.contiguous().to(torch.device('cuda:0'))
-        """
-
-        """
-        imgs = imgs_input.clone().cpu().detach().numpy().transpose(0, 1, 3, 4, 2)
-        imgs = torch.Tensor(imgs)
-        imgs = imgs.clone().contiguous().to(torch.device('cuda:0'))
-        """
 
         teacher_forcing_loss, teacher_forcing_onehots = self.get_teacher_forcing_loss(utterances, imgs_speaker, labels)
         lang = teacher_forcing_onehots
 
-        # imgs_input = batch['imgs'].transpose(0, 1, 4, 2, 3)
-        # lang, lang_length, loss = self.model(imgs_input, labels)
-        # lang, lang_length, loss = self.model(imgs_input.clone(), labels)
-
-        # lang, lang_length, loss, embedding_module = self.model(imgs_speaker, labels)
         lang_nontf, lang_length, loss, embedding_module = self.model(imgs_speaker, labels) # TEMP EDIT: jul 29
-        
-        # import pdb; pdb.set_trace()
-        # df=self.construct_lang_table(lang=lang, gt=utterances)
-        # self.save_lang_table(df, batch_idx, prefix)
-
-        """clip_scorer = self.clip_scorer(
-            listener=self.clip_listener,
-            imgs=imgs_clip,
-            # df=df,
-            preprocess=self.preprocess,
-            vocab_type=self.config.model_params.vocab,
-            lang=lang,
-            lang_length=lang_length,
-            embedding_module=embedding_module
-        )
-        lis_scores = clip_scorer.listener_scores
-        loss = nn.CrossEntropyLoss()
-        lis_pred = lis_scores.argmax(1)
-        losses = loss(lis_scores, labels)
-        acc = (lis_pred == labels).float().mean()"""
 
         # import pdb; pdb.set_trace()
         if which_listener == "train":
@@ -359,11 +320,6 @@ class SpeakerCLIPSystem(system.BasicSystem):
             loss = nn.CrossEntropyLoss()
             losses = loss(lis_scores, labels)
             acc = (lis_pred == labels).float().mean()
-            """avg_l0_scores = l0_scorer.get_average_l0_score()
-            lis_pred = avg_l0_scores.argmax(1)
-            loss = nn.CrossEntropyLoss()
-            losses = loss(avg_l0_scores, labels)
-            acc = (lis_pred == labels).float().mean()"""
 
         df=self.construct_lang_table(lang=lang, gt=utterances, lis_scores=lis_scores)
         self.save_lang_table(df, batch_idx, prefix)
@@ -380,51 +336,14 @@ class SpeakerCLIPSystem(system.BasicSystem):
    
     def get_losses_for_batch(self, batch, batch_idx, which_listener, prefix):
         # import pdb; pdb.set_trace()
-        # if (batch_idx == 10) or (batch_idx == 11):
-        #     import pdb; pdb.set_trace()
-        
+
         # imgs, labels, utterances = (
         imgs_speaker, labels, utterances, imgs_clip = (
             # batch['imgs'], batch['label'].argmax(-1).long(), batch['utterance'])
             batch['imgs'].float(), batch['label'].argmax(-1).long(), batch['utterance'], batch['imgs_original'])
-        
-        """
-        imgs_input = batch['imgs'].cpu().detach().numpy().transpose(0, 1, 4, 2, 3) # (0, 1, 3, 4, 2)
-        imgs_input = torch.Tensor(imgs_input)
-        imgs_input = imgs_input.contiguous().to(torch.device('cuda:0'))
-        """
 
-        """
-        imgs = imgs_input.clone().cpu().detach().numpy().transpose(0, 1, 3, 4, 2)
-        imgs = torch.Tensor(imgs)
-        imgs = imgs.clone().contiguous().to(torch.device('cuda:0'))
-        """
-
-        # imgs_input = batch['imgs'].transpose(0, 1, 4, 2, 3)
-        # lang, lang_length, loss = self.model(imgs_input, labels)
-        # lang, lang_length, loss = self.model(imgs_input.clone(), labels)
         lang, lang_length, loss, embedding_module = self.model(imgs_speaker, labels)
-        # import pdb; pdb.set_trace()
-        # df=self.construct_lang_table(lang=lang, gt=utterances)
-        # self.save_lang_table(df, batch_idx, prefix)
 
-        """clip_scorer = self.clip_scorer(
-            listener=self.clip_listener,
-            imgs=imgs_clip,
-            # df=df,
-            preprocess=self.preprocess,
-            vocab_type=self.config.model_params.vocab,
-            lang=lang,
-            lang_length=lang_length,
-            embedding_module=embedding_module
-        )
-        lis_scores = clip_scorer.listener_scores
-        loss = nn.CrossEntropyLoss()
-        lis_pred = lis_scores.argmax(1)
-        losses = loss(lis_scores, labels)
-        acc = (lis_pred == labels).float().mean()"""
-
-        # import pdb; pdb.set_trace()
         if which_listener == "train":
             clip_scorer = self.clip_scorer(
                 listener=self.clip_listener,
@@ -449,17 +368,11 @@ class SpeakerCLIPSystem(system.BasicSystem):
                 lang_length=lang_length,
                 config=self.config
             )
-            # just renamed avg_l0_scores to lis_scorers for consistency with clip flow above
             lis_scores = l0_scorer.get_average_l0_score()
             lis_pred = lis_scores.argmax(1)
             loss = nn.CrossEntropyLoss()
             losses = loss(lis_scores, labels)
             acc = (lis_pred == labels).float().mean()
-            """avg_l0_scores = l0_scorer.get_average_l0_score()
-            lis_pred = avg_l0_scores.argmax(1)
-            loss = nn.CrossEntropyLoss()
-            losses = loss(avg_l0_scores, labels)
-            acc = (lis_pred == labels).float().mean()"""
 
         df=self.construct_lang_table(lang=lang, gt=utterances, lis_scores=lis_scores)
         self.save_lang_table(df, batch_idx, prefix)
