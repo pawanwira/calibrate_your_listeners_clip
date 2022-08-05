@@ -90,7 +90,7 @@ class Shapeworld(data.Dataset):
             ]
         self.name = self.config.model_params.name
         self.s1_filepaths = [
-            os.path.join(self.directory, f'reference-1000-{f_index}.npz') for f_index in range(60, 70) # range(50, 60) # range(135, 145)
+            os.path.join(self.directory, f'reference-1000-{f_index}.npz') for f_index in range(60, 70) # range(60, 62) # range(50, 60) # range(135, 145)
         ]
 
         # Datasetloading
@@ -150,8 +150,10 @@ class Shapeworld(data.Dataset):
             self.filepaths = self.l0_filepaths[-1:]
         elif self.train and self.name == "s1":
             self.filepaths = self.s1_filepaths[:5]
+            # self.filepaths = self.s1_filepaths[:1] # TODO: change back to [:5]
         elif not self.train and self.name == "s1":
             self.filepaths = self.s1_filepaths[5:]
+            # self.filepaths = self.s1_filepaths[1:] # TODO: change back to [:5]
         else:
             raise ValueError()
 

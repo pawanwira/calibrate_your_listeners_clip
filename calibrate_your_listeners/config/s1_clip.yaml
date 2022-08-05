@@ -37,6 +37,8 @@ training_params:
   checkpoint_steps: 100
   seed: 13
   cuda: True
+  ood_loss: False
+  tf: False
 optim_params:
-  batch_size: 8
+  batch_size: 16
   learning_rate: 0.0001 # 0.001 # 0.00001 
