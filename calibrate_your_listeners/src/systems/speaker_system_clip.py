@@ -525,7 +525,6 @@ class SpeakerCLIPSystem(system.BasicSystem):
             losses = loss(lis_scores, labels)
             acc = (lis_pred == labels).float().mean()
 
-        import pdb; pdb.set_trace()
         df=self.construct_lang_table(lang=lang, gt=utterances, lis_scores=lis_scores)
         self.save_lang_table(df, batch_idx, prefix)
 
@@ -638,16 +637,20 @@ class SpeakerCLIPSystem(system.BasicSystem):
         if self.config.training_params.tf:
             # result = self.get_losses_for_batch_tf_with_ood_loss(batch, batch_idx, which_listener="train", prefix="train")
             result = self.get_losses_for_batch_tf(batch, batch_idx, which_listener="train", prefix="train")
-            # pragmatic_loss = result['pragmatic_loss']
+            prag_loss = result['pragmatic_loss']
+            tf_loss = result['teacher_forcing_loss']
             self.log_results(result=result, category="train")
+            loss_final = ((prag_loss * self.config.training_params.prag_lmbd)
+                            + (tf_loss * self.config.training_params.tf_lmbd))
+            return loss_final
 
-            # L_p + L_tf:
-            total_loss = result['total_loss']
-            return total_loss
+            # # L_p + L_tf:
+            # total_loss = result['total_loss']
+            # return total_loss
             
-            # L_tf only:
-            """tf_loss = result['teacher_forcing_loss']
-            return tf_loss"""
+            # # L_tf only:
+            # """tf_loss = result['teacher_forcing_loss']
+            # return tf_loss"""
 
 
         if self.config.training_params.ood_loss:
@@ -680,31 +683,45 @@ class SpeakerCLIPSystem(system.BasicSystem):
         # import pdb; pdb.set_trace()
         
         if self.config.training_params.tf:
-            # L_p + L_tf:
             for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]: 
                 # import pdb; pdb.set_trace()
                 which_listener = "train" if "trainL0" in setting else "val"
                 # result = self.get_losses_for_batch_tf_with_ood_loss(batch[setting], batch_idx, which_listener="train", prefix="train")
                 result = self.get_losses_for_batch_tf(batch[setting], batch_idx, which_listener="train", prefix=setting)
-                # pragmatic_loss = result['pragmatic_loss']
-                # tf_loss = result['teacher_forcing_loss']
-                total_loss = result['total_loss']
-                # ood_loss = result['ood_loss']
-                self.log_results(result=result, category=setting)
-            return total_loss
-
-            # L_tf only:
-            """for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]: 
-                # import pdb; pdb.set_trace()
-                which_listener = "train" if "trainL0" in setting else "val"
-                # result = self.get_losses_for_batch_tf_with_ood_loss(batch[setting], batch_idx, which_listener="train", prefix="train")
-                result = self.get_losses_for_batch_tf(batch[setting], batch_idx, which_listener="train", prefix=setting)
-                # pragmatic_loss = result['pragmatic_loss']
+                prag_loss = result['pragmatic_loss']
                 tf_loss = result['teacher_forcing_loss']
                 # total_loss = result['total_loss']
                 # ood_loss = result['ood_loss']
                 self.log_results(result=result, category=setting)
-            return tf_loss"""
+                loss_final = ((prag_loss * self.config.training_params.prag_lmbd)
+                            + (tf_loss * self.config.training_params.tf_lmbd))
+            return loss_final
+            
+            # # L_p + L_tf:
+            # for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]: 
+            #     # import pdb; pdb.set_trace()
+            #     which_listener = "train" if "trainL0" in setting else "val"
+            #     # result = self.get_losses_for_batch_tf_with_ood_loss(batch[setting], batch_idx, which_listener="train", prefix="train")
+            #     result = self.get_losses_for_batch_tf(batch[setting], batch_idx, which_listener="train", prefix=setting)
+            #     # pragmatic_loss = result['pragmatic_loss']
+            #     # tf_loss = result['teacher_forcing_loss']
+            #     total_loss = result['total_loss']
+            #     # ood_loss = result['ood_loss']
+            #     self.log_results(result=result, category=setting)
+            # return total_loss
+
+            # # L_tf only:
+            # """for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]: 
+            #     # import pdb; pdb.set_trace()
+            #     which_listener = "train" if "trainL0" in setting else "val"
+            #     # result = self.get_losses_for_batch_tf_with_ood_loss(batch[setting], batch_idx, which_listener="train", prefix="train")
+            #     result = self.get_losses_for_batch_tf(batch[setting], batch_idx, which_listener="train", prefix=setting)
+            #     # pragmatic_loss = result['pragmatic_loss']
+            #     tf_loss = result['teacher_forcing_loss']
+            #     # total_loss = result['total_loss']
+            #     # ood_loss = result['ood_loss']
+            #     self.log_results(result=result, category=setting)
+            # return tf_loss"""
 
         if self.config.training_params.ood_loss:
             for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]:  

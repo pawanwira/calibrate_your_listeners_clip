@@ -40,6 +40,8 @@ training_params:
   ood_loss: False
   tf: False
   tf_inputnotgt: False
+  tf_lmbd: 0
+  prag_lmbd: 0
 optim_params:
   batch_size: 32
   learning_rate: 0.0001 # 0.001 # 0.00001 
