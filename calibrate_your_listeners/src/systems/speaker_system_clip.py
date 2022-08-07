@@ -47,6 +47,12 @@ class SpeakerCLIPSystem(system.BasicSystem):
         self.val_dataset.listener_tokenize_f=model.tokenize
         self.test_dataset.listener_tokenize_f=model.tokenize
 
+        # import pdb; pdb.set_trace()
+        self.exp_name = self.config.wandb_params.exp_name
+        path = os.path.join("clip", "lang_table", self.exp_name)
+        if not os.path.exists():
+            os.makedirs()
+
     def freeze_model(self, model):
         for p in model.parameters():
             p.requires_grad = False
@@ -519,8 +525,9 @@ class SpeakerCLIPSystem(system.BasicSystem):
             losses = loss(lis_scores, labels)
             acc = (lis_pred == labels).float().mean()
 
-        # df=self.construct_lang_table(lang=lang, gt=utterances, lis_scores=lis_scores)
-        # self.save_lang_table(df, batch_idx, prefix)
+        import pdb; pdb.set_trace()
+        df=self.construct_lang_table(lang=lang, gt=utterances, lis_scores=lis_scores)
+        self.save_lang_table(df, batch_idx, prefix)
 
         # import pdb; pdb.set_trace()
         return {
@@ -601,14 +608,13 @@ class SpeakerCLIPSystem(system.BasicSystem):
         #     vocab = "big_vocab"
         # import pdb; pdb.set_trace()
         vocab = "clip_vocab"
-        exp_name = "s1_clip_tf_forward_Ltf_and_Lp_batch32_node13_noanomalydetect" 
         fpath = os.path.join(
                 constants.MAIN_REPO_DIR,
                 "clip",
                 "lang_table",
                 vocab,
                 # listener_type,
-                exp_name,
+                self.exp_name,
                 f"{prefix}-{self.trainer.current_epoch}-{batch_idx}.csv"
                 )
         df.to_csv(fpath, index=False, escapechar="\\")
@@ -636,12 +642,12 @@ class SpeakerCLIPSystem(system.BasicSystem):
             self.log_results(result=result, category="train")
 
             # L_p + L_tf:
-            """total_loss = result['total_loss']
-            return total_loss"""
+            total_loss = result['total_loss']
+            return total_loss
             
             # L_tf only:
-            tf_loss = result['teacher_forcing_loss']
-            return tf_loss
+            """tf_loss = result['teacher_forcing_loss']
+            return tf_loss"""
 
 
         if self.config.training_params.ood_loss:
@@ -675,7 +681,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         
         if self.config.training_params.tf:
             # L_p + L_tf:
-            """for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]: 
+            for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]: 
                 # import pdb; pdb.set_trace()
                 which_listener = "train" if "trainL0" in setting else "val"
                 # result = self.get_losses_for_batch_tf_with_ood_loss(batch[setting], batch_idx, which_listener="train", prefix="train")
@@ -685,10 +691,10 @@ class SpeakerCLIPSystem(system.BasicSystem):
                 total_loss = result['total_loss']
                 # ood_loss = result['ood_loss']
                 self.log_results(result=result, category=setting)
-            return total_loss"""
+            return total_loss
 
             # L_tf only:
-            for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]: 
+            """for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]: 
                 # import pdb; pdb.set_trace()
                 which_listener = "train" if "trainL0" in setting else "val"
                 # result = self.get_losses_for_batch_tf_with_ood_loss(batch[setting], batch_idx, which_listener="train", prefix="train")
@@ -698,7 +704,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
                 # total_loss = result['total_loss']
                 # ood_loss = result['ood_loss']
                 self.log_results(result=result, category=setting)
-            return tf_loss
+            return tf_loss"""
 
         if self.config.training_params.ood_loss:
             for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]:  
