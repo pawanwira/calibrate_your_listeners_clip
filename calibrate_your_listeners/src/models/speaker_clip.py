@@ -190,170 +190,348 @@ class Speaker(nn.Module): # L_0
 
         # original version
         # original_lang_tensor, original_onehots_with_sos = self.teacher_forcing_forward_original(feats, seq, targets)
-        with torch.autograd.set_detect_anomaly(True):
-            batch_size = feats.size(0)
-            feats_emb = self.embed_features(feats, targets)
+        batch_size = feats.size(0)
+        feats_emb = self.embed_features(feats, targets)
 
-            # reorder from (B,L,D) to (L,B,D)
-            seq = seq.transpose(0, 1).to(feats.device)
+        # reorder from (B,L,D) to (L,B,D)
+        seq = seq.transpose(0, 1).to(feats.device)
 
-            # embed your sequences
-            embed_seq = seq @ self.embedding.weight
+        # embed your sequences
+        embed_seq = seq @ self.embedding.weight
 
-            # initialize hidden states using image features
-            states = self.imgFeat2hidden(feats_emb)
-            states = states.unsqueeze(0)
+        # initialize hidden states using image features
+        states = self.imgFeat2hidden(feats_emb)
+        states = states.unsqueeze(0)
 
-            # This contains are series of sampled onehot vectors
-            lang = []
-            lang4tfloss = []
-            lang_prob = None
+        # This contains are series of sampled onehot vectors
+        lang = []
+        lang4tfloss = []
+        lang_prob = None
+        if length_penalty:
+            eos_prob = []
+
+        # And vector lengths
+        lang_length = np.ones(batch_size, dtype=np.int64)
+        done_sampling = np.array([False for _ in range(batch_size)])
+
+        # first input is SOS token
+        # (batch_size, n_vocab)
+        inputs_onehot = torch.zeros(batch_size, self.vocab_size, device=feats.device)
+        """if self._is_old:
+            inputs_onehot[:, constants.SOS_IDX] = 1.0"""
+
+        # No start token for GPT - leave inputs as onehot
+
+        # Start token for CLIP
+        inputs_onehot[:, self._start_token] = 1.0  # edit jul 15
+
+        # (batch_size, len, n_vocab)
+        inputs_onehot = inputs_onehot.unsqueeze(1)
+
+        # Add SOS to lang
+        lang.append(inputs_onehot)
+
+        # (B,L,D) to (L,B,D)
+        inputs_onehot = inputs_onehot.transpose(0, 1)
+        
+        # compute embeddings
+        # (1, batch_size, n_vocab) X (n_vocab, h) -> (1, batch_size, h)
+        inputs = inputs_onehot @ self.embedding.weight
+        """if self._is_old:
+            max_len = self._max_seq_len - 2
+        else:
+            max_len = self._max_seq_len - 1"""
+        max_len = self._max_seq_len # - 2  # clip
+
+        # import pdb; pdb.set_trace()
+        for i in range(max_len):  # Have room for EOS if never sampled
+            # import pdb; pdb.set_trace()
+            # FIXME: This is inefficient since I do sampling even if we've
+            # finished generating language.
+            if all(done_sampling):
+                for j in range(i, max_len):
+                    inputs = embed_seq[j].unsqueeze(0)
+                    outputs, states = self.gru(inputs, states)  # outputs: (L=1,B,H)
+                    lang4tfloss.append(outputs)
+                break
+
+            inputs = embed_seq[i].unsqueeze(0)
+            outputs, states = self.gru(inputs, states)  # outputs: (L=1,B,H)
+
+            lang4tfloss.append(outputs)
+
+            outputs = outputs.squeeze(0)                # outputs: (B,H)
+            outputs = self.hidden2vocab(outputs)       # outputs: (B,V)
+
+            if activation=='gumbel':
+                predicted_onehot = F.gumbel_softmax(outputs, tau=tau, hard=True)
+            else:
+                raise NotImplementedError(activation)
+
+            # Add to lang
+            lang.append(predicted_onehot.unsqueeze(1))
             if length_penalty:
-                eos_prob = []
+                idx_prob = F.log_softmax(outputs, dim = 1)
+                eos_prob.append(idx_prob[:, self._end_token])
 
-            # And vector lengths
-            lang_length = np.ones(batch_size, dtype=np.int64)
-            done_sampling = np.array([False for _ in range(batch_size)])
+            # Update language lengths
+            lang_length += ~done_sampling
+            done_sampling = np.logical_or(
+                done_sampling,
+                (predicted_onehot[:, self._end_token] == 1.0).cpu().numpy())
+            # assert activation in {'gumbel', 'multinomial'}, "check activation either gumbel or multinom"
 
-            # first input is SOS token
-            # (batch_size, n_vocab)
-            inputs_onehot = torch.zeros(batch_size, self.vocab_size, device=feats.device)
-            """if self._is_old:
-                inputs_onehot[:, constants.SOS_IDX] = 1.0"""
-
-            # No start token for GPT - leave inputs as onehot
-
-            # Start token for CLIP
-            inputs_onehot[:, self._start_token] = 1.0  # edit jul 15
-
-            # (batch_size, len, n_vocab)
-            inputs_onehot = inputs_onehot.unsqueeze(1)
-
-            # Add SOS to lang
-            lang.append(inputs_onehot)
-
-            # (B,L,D) to (L,B,D)
-            inputs_onehot = inputs_onehot.transpose(0, 1)
-            
-            # compute embeddings
             # (1, batch_size, n_vocab) X (n_vocab, h) -> (1, batch_size, h)
-            inputs = inputs_onehot @ self.embedding.weight
-            """if self._is_old:
-                max_len = self._max_seq_len - 2
-            else:
-                max_len = self._max_seq_len - 1"""
-            max_len = self._max_seq_len # - 2  # clip
+            inputs = (predicted_onehot.unsqueeze(0)) @ self.embedding.weight
 
+        # if (lang_length[0] == 8 ) & (lang_length[1] == 7) & (lang_length[2] == 9) & (lang_length[3] == 8):
+        #     import pdb; pdb.set_trace()
+
+        # import pdb; pdb.set_trace()
+        # Add EOS if we've never sampled it
+        if not all(done_sampling):
+            eos_onehot = torch.zeros(batch_size, 1, self.vocab_size, device=feats.device)
+            eos_onehot[:, 0, self._end_token] = 1.0
+            lang.append(eos_onehot)
+
+            # Cut off the rest of the sentences
+            lang_length += (~done_sampling) 
+
+        pad_onehot = torch.zeros(batch_size, 1, self.vocab_size, device=feats.device)
+        pad_onehot[:, 0, self._pad_token] = 1.0
+        # for i in range(self.clip_text_config.max_position_embeddings - max(lang_length)):
+        for i in range(max_len + 2 - max(lang_length)):
+            lang.append(pad_onehot)
+
+        # Cat language tensors (batch_size, max_seq_length, vocab_size)
+        # skip first element b/c it's just 0s
+        # no SOS token for GPT
+        """if self._is_old:
+            lang_tensor = torch.cat(lang, 1)
+        else:
+            lang_tensor = torch.cat(lang[1:], 1)
+            lang_length -= 1"""
+        lang_tensor = torch.cat(lang, 1)  # clip
+
+        # should be like "output" in teacher_forcing_forward_original
+        output = torch.cat(lang4tfloss, 0)
+        output = output.transpose(0, 1) 
+
+        max_length = output.size(1)
+        output_2d = output.reshape(batch_size * max_length, -1)
+        outputs_2d = self.hidden2vocab(output_2d)
+
+        # Distribution over vocab for each batch, (batch_size, max_seq_length, vocab_size)
+        lang4tfloss_tensor = outputs_2d.reshape(batch_size, max_length, self.vocab_size)
+
+        """for i in range(lang_tensor.shape[0]):
+            lang_tensor[i, lang_length[i]:] = 0"""
+
+        # Trim max length
+        # max_lang_len = lang_length.max()
+        # lang_tensor = lang_tensor[:, :max_lang_len, :]
+
+        if length_penalty:
+            # eos prob -> eos loss
+            eos_prob = torch.stack(eos_prob, dim = 1)
+            for i in range(eos_prob.shape[0]):
+                r_len = torch.arange(1,eos_prob.shape[1]+1,dtype=torch.float32)
+                eos_prob[i] = eos_prob[i]*r_len.to(eos_prob.device)
+                eos_prob[i, lang_length[i]:] = 0
+            eos_loss = -eos_prob
+            eos_loss = eos_loss.sum(1)/torch.tensor(
+                lang_length,dtype=torch.float32, device=eos_loss.device)
+            eos_loss = eos_loss.mean()
+        else:
+            eos_loss = 0
+
+        # Sum up log probabilities of samples
+        lang_length = torch.Tensor(lang_length)
+
+        # import pdb; pdb.set_trace()
+        # return lang_final, lang_length, eos_loss
+        # if lang_tensor.size(1) != 77:
+        #     import pdb; pdb.set_trace()
+        return lang_tensor, lang_length, eos_loss, lang4tfloss_tensor # , lang_prob
+
+    def teacher_forcing_forward_inputnotgt(self, feats, targets, seq, activation='gumbel', tau=1.0, length_penalty=False):
+        # import pdb; pdb.set_trace()
+
+        # original version
+        # original_lang_tensor, original_onehots_with_sos = self.teacher_forcing_forward_original(feats, seq, targets)
+        batch_size = feats.size(0)
+        feats_emb = self.embed_features(feats, targets)
+
+        # reorder from (B,L,D) to (L,B,D)
+        seq = seq.transpose(0, 1).to(feats.device)
+
+        # embed your sequences
+        embed_seq = seq @ self.embedding.weight
+
+        # initialize hidden states using image features
+        states = self.imgFeat2hidden(feats_emb)
+        states = states.unsqueeze(0)
+
+        # This contains are series of sampled onehot vectors
+        lang = []
+        lang4tfloss = []
+        lang_prob = None
+        if length_penalty:
+            eos_prob = []
+
+        # And vector lengths
+        lang_length = np.ones(batch_size, dtype=np.int64)
+        done_sampling = np.array([False for _ in range(batch_size)])
+
+        # first input is SOS token
+        # (batch_size, n_vocab)
+        inputs_onehot = torch.zeros(batch_size, self.vocab_size, device=feats.device)
+        """if self._is_old:
+            inputs_onehot[:, constants.SOS_IDX] = 1.0"""
+
+        # No start token for GPT - leave inputs as onehot
+
+        # Start token for CLIP
+        inputs_onehot[:, self._start_token] = 1.0  # edit jul 15
+
+        # (batch_size, len, n_vocab)
+        inputs_onehot = inputs_onehot.unsqueeze(1)
+
+        # Add SOS to lang
+        lang.append(inputs_onehot)
+
+        # (B,L,D) to (L,B,D)
+        inputs_onehot = inputs_onehot.transpose(0, 1)
+        
+        # compute embeddings
+        # (1, batch_size, n_vocab) X (n_vocab, h) -> (1, batch_size, h)
+        inputs = inputs_onehot @ self.embedding.weight
+        """if self._is_old:
+            max_len = self._max_seq_len - 2
+        else:
+            max_len = self._max_seq_len - 1"""
+        max_len = self._max_seq_len # - 2  # clip
+
+        # import pdb; pdb.set_trace()
+        for i in range(max_len):  # Have room for EOS if never sampled
             # import pdb; pdb.set_trace()
-            for i in range(max_len):  # Have room for EOS if never sampled
-                # import pdb; pdb.set_trace()
-                # FIXME: This is inefficient since I do sampling even if we've
-                # finished generating language.
-                if all(done_sampling):
-                    for j in range(i, max_len):
-                        inputs = embed_seq[j].unsqueeze(0)
-                        outputs, states = self.gru(inputs, states)  # outputs: (L=1,B,H)
-                        lang4tfloss.append(outputs)
-                    break
+            # FIXME: This is inefficient since I do sampling even if we've
+            # finished generating language.
+            if all(done_sampling):
+                for j in range(i, max_len):
+                    ## inputs = embed_seq[j].unsqueeze(0)
+                    outputs, states = self.gru(inputs, states)  # outputs: (L=1,B,H)
+                    lang4tfloss.append(outputs)
 
-                inputs = embed_seq[i].unsqueeze(0)
-                outputs, states = self.gru(inputs, states)  # outputs: (L=1,B,H)
+                    outputs = outputs.squeeze(0)                # outputs: (B,H)
+                    outputs = self.hidden2vocab(outputs)       # outputs: (B,V)
 
-                lang4tfloss.append(outputs)
+                    if activation=='gumbel':
+                        predicted_onehot = F.gumbel_softmax(outputs, tau=tau, hard=True)
+                    else:
+                        raise NotImplementedError(activation)
 
-                outputs = outputs.squeeze(0)                # outputs: (B,H)
-                outputs = self.hidden2vocab(outputs)       # outputs: (B,V)
+                    inputs = (predicted_onehot.unsqueeze(0)) @ self.embedding.weight
+                break
 
-                if activation=='gumbel':
-                    predicted_onehot = F.gumbel_softmax(outputs, tau=tau, hard=True)
-                else:
-                    raise NotImplementedError(activation)
+            ## inputs = embed_seq[i].unsqueeze(0)
+            outputs, states = self.gru(inputs, states)  # outputs: (L=1,B,H)
 
-                # Add to lang
-                lang.append(predicted_onehot.unsqueeze(1))
-                if length_penalty:
-                    idx_prob = F.log_softmax(outputs, dim = 1)
-                    eos_prob.append(idx_prob[:, self._end_token])
+            lang4tfloss.append(outputs)
 
-                # Update language lengths
-                lang_length += ~done_sampling
-                done_sampling = np.logical_or(
-                    done_sampling,
-                    (predicted_onehot[:, self._end_token] == 1.0).cpu().numpy())
-                # assert activation in {'gumbel', 'multinomial'}, "check activation either gumbel or multinom"
+            outputs = outputs.squeeze(0)                # outputs: (B,H)
+            outputs = self.hidden2vocab(outputs)       # outputs: (B,V)
 
-                # (1, batch_size, n_vocab) X (n_vocab, h) -> (1, batch_size, h)
-                inputs = (predicted_onehot.unsqueeze(0)) @ self.embedding.weight
-
-            # if (lang_length[0] == 8 ) & (lang_length[1] == 7) & (lang_length[2] == 9) & (lang_length[3] == 8):
-            #     import pdb; pdb.set_trace()
-
-            # import pdb; pdb.set_trace()
-            # Add EOS if we've never sampled it
-            if not all(done_sampling):
-                eos_onehot = torch.zeros(batch_size, 1, self.vocab_size, device=feats.device)
-                eos_onehot[:, 0, self._end_token] = 1.0
-                lang.append(eos_onehot)
-
-                # Cut off the rest of the sentences
-                lang_length += (~done_sampling) 
-
-            pad_onehot = torch.zeros(batch_size, 1, self.vocab_size, device=feats.device)
-            pad_onehot[:, 0, self._pad_token] = 1.0
-            # for i in range(self.clip_text_config.max_position_embeddings - max(lang_length)):
-            for i in range(max_len + 2 - max(lang_length)):
-                lang.append(pad_onehot)
-
-            # Cat language tensors (batch_size, max_seq_length, vocab_size)
-            # skip first element b/c it's just 0s
-            # no SOS token for GPT
-            """if self._is_old:
-                lang_tensor = torch.cat(lang, 1)
+            if activation=='gumbel':
+                predicted_onehot = F.gumbel_softmax(outputs, tau=tau, hard=True)
             else:
-                lang_tensor = torch.cat(lang[1:], 1)
-                lang_length -= 1"""
-            lang_tensor = torch.cat(lang, 1)  # clip
+                raise NotImplementedError(activation)
 
-            # should be like "output" in teacher_forcing_forward_original
-            output = torch.cat(lang4tfloss, 0)
-            output = output.transpose(0, 1) 
-
-            max_length = output.size(1)
-            output_2d = output.reshape(batch_size * max_length, -1)
-            outputs_2d = self.hidden2vocab(output_2d)
-
-            # Distribution over vocab for each batch, (batch_size, max_seq_length, vocab_size)
-            lang4tfloss_tensor = outputs_2d.reshape(batch_size, max_length, self.vocab_size)
-
-            """for i in range(lang_tensor.shape[0]):
-                lang_tensor[i, lang_length[i]:] = 0"""
-
-            # Trim max length
-            # max_lang_len = lang_length.max()
-            # lang_tensor = lang_tensor[:, :max_lang_len, :]
-
+            # Add to lang
+            lang.append(predicted_onehot.unsqueeze(1))
             if length_penalty:
-                # eos prob -> eos loss
-                eos_prob = torch.stack(eos_prob, dim = 1)
-                for i in range(eos_prob.shape[0]):
-                    r_len = torch.arange(1,eos_prob.shape[1]+1,dtype=torch.float32)
-                    eos_prob[i] = eos_prob[i]*r_len.to(eos_prob.device)
-                    eos_prob[i, lang_length[i]:] = 0
-                eos_loss = -eos_prob
-                eos_loss = eos_loss.sum(1)/torch.tensor(
-                    lang_length,dtype=torch.float32, device=eos_loss.device)
-                eos_loss = eos_loss.mean()
-            else:
-                eos_loss = 0
+                idx_prob = F.log_softmax(outputs, dim = 1)
+                eos_prob.append(idx_prob[:, self._end_token])
 
-            # Sum up log probabilities of samples
-            lang_length = torch.Tensor(lang_length)
+            # Update language lengths
+            lang_length += ~done_sampling
+            done_sampling = np.logical_or(
+                done_sampling,
+                (predicted_onehot[:, self._end_token] == 1.0).cpu().numpy())
+            # assert activation in {'gumbel', 'multinomial'}, "check activation either gumbel or multinom"
 
-            # import pdb; pdb.set_trace()
-            # return lang_final, lang_length, eos_loss
-            # if lang_tensor.size(1) != 77:
-            #     import pdb; pdb.set_trace()
-            return lang_tensor, lang_length, eos_loss, lang4tfloss_tensor # , lang_prob
+            # (1, batch_size, n_vocab) X (n_vocab, h) -> (1, batch_size, h)
+            inputs = (predicted_onehot.unsqueeze(0)) @ self.embedding.weight
+
+        # if (lang_length[0] == 8 ) & (lang_length[1] == 7) & (lang_length[2] == 9) & (lang_length[3] == 8):
+        #     import pdb; pdb.set_trace()
+
+        # import pdb; pdb.set_trace()
+        # Add EOS if we've never sampled it
+        if not all(done_sampling):
+            eos_onehot = torch.zeros(batch_size, 1, self.vocab_size, device=feats.device)
+            eos_onehot[:, 0, self._end_token] = 1.0
+            lang.append(eos_onehot)
+
+            # Cut off the rest of the sentences
+            lang_length += (~done_sampling) 
+
+        pad_onehot = torch.zeros(batch_size, 1, self.vocab_size, device=feats.device)
+        pad_onehot[:, 0, self._pad_token] = 1.0
+        # for i in range(self.clip_text_config.max_position_embeddings - max(lang_length)):
+        for i in range(max_len + 2 - max(lang_length)):
+            lang.append(pad_onehot)
+
+        # Cat language tensors (batch_size, max_seq_length, vocab_size)
+        # skip first element b/c it's just 0s
+        # no SOS token for GPT
+        """if self._is_old:
+            lang_tensor = torch.cat(lang, 1)
+        else:
+            lang_tensor = torch.cat(lang[1:], 1)
+            lang_length -= 1"""
+        lang_tensor = torch.cat(lang, 1)  # clip
+
+        # should be like "output" in teacher_forcing_forward_original
+        output = torch.cat(lang4tfloss, 0)
+        output = output.transpose(0, 1) 
+
+        max_length = output.size(1)
+        output_2d = output.reshape(batch_size * max_length, -1)
+        outputs_2d = self.hidden2vocab(output_2d)
+
+        # Distribution over vocab for each batch, (batch_size, max_seq_length, vocab_size)
+        lang4tfloss_tensor = outputs_2d.reshape(batch_size, max_length, self.vocab_size)
+
+        """for i in range(lang_tensor.shape[0]):
+            lang_tensor[i, lang_length[i]:] = 0"""
+
+        # Trim max length
+        # max_lang_len = lang_length.max()
+        # lang_tensor = lang_tensor[:, :max_lang_len, :]
+
+        if length_penalty:
+            # eos prob -> eos loss
+            eos_prob = torch.stack(eos_prob, dim = 1)
+            for i in range(eos_prob.shape[0]):
+                r_len = torch.arange(1,eos_prob.shape[1]+1,dtype=torch.float32)
+                eos_prob[i] = eos_prob[i]*r_len.to(eos_prob.device)
+                eos_prob[i, lang_length[i]:] = 0
+            eos_loss = -eos_prob
+            eos_loss = eos_loss.sum(1)/torch.tensor(
+                lang_length,dtype=torch.float32, device=eos_loss.device)
+            eos_loss = eos_loss.mean()
+        else:
+            eos_loss = 0
+
+        # Sum up log probabilities of samples
+        lang_length = torch.Tensor(lang_length)
+
+        # import pdb; pdb.set_trace()
+        # return lang_final, lang_length, eos_loss
+        # if lang_tensor.size(1) != 77:
+        #     import pdb; pdb.set_trace()
+        return lang_tensor, lang_length, eos_loss, lang4tfloss_tensor # , lang_prob
 
     def forward(self, feats, targets, activation='gumbel', tau=1.0, length_penalty=False):
         # import pdb; pdb.set_trace()
@@ -422,7 +600,7 @@ class Speaker(nn.Module): # L_0
             # Add to lang
             lang.append(predicted_onehot.unsqueeze(1))
 
-            # TODO: pass tokens and lang_length so far into CLIP listener
+            # TODO: for tokenization penalization, pass tokens and lang_length so far into CLIP listener
 
             if length_penalty:
                 idx_prob = F.log_softmax(outputs, dim = 1)

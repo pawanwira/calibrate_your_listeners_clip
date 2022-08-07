@@ -115,7 +115,7 @@ class CLIPListenerScores(object):
     
     # custom v3 - with ood loss
     def _calculate_listener_scores_with_ood_loss(self):
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         lis_scores = []
         ood_loss_list = []
         # import pdb; pdb.set_trace()
@@ -165,50 +165,49 @@ class CLIPListenerScores(object):
     
     # custom v2
     def _calculate_listener_scores(self):
-        with torch.autograd.set_detect_anomaly(True):
+        # import pdb; pdb.set_trace()
+        lis_scores = []
+        # import pdb; pdb.set_trace()
+        for i in range(len(self.imgs)):
             # import pdb; pdb.set_trace()
-            lis_scores = []
-            # import pdb; pdb.set_trace()
-            for i in range(len(self.imgs)):
-                # import pdb; pdb.set_trace()
-                states = self.imgs[i]
-                images = torch.tensor(np.stack([self._preprocess(state) for state in states])).cuda()
+            states = self.imgs[i]
+            images = torch.tensor(np.stack([self._preprocess(state) for state in states])).cuda()
 
-                """for j in range(3):
-                    image = Image.fromarray(np.uint8(states[j].cpu())).convert('RGB')
-                    images.append(self.preprocess(image))
-                images_pre = torch.tensor(np.stack(images)).cuda()""" 
+            """for j in range(3):
+                image = Image.fromarray(np.uint8(states[j].cpu())).convert('RGB')
+                images.append(self.preprocess(image))
+            images_pre = torch.tensor(np.stack(images)).cuda()""" 
 
-                # utterance_tokens = self._get_utterance_tokens(i)
-                # utterance_tokens = self.lang[i]
+            # utterance_tokens = self._get_utterance_tokens(i)
+            # utterance_tokens = self.lang[i]
 
-                """with torch.no_grad():
-                    image_features = self.listener.encode_image(images).float()
-                    utterance_features = self.listener.encode_text(utterance_tokens).float()"""
-                # max_idx = torch.tensor(np.argmax([self.lang[i][j].argmax().item() for j in range(self.clip_text_config.max_position_embeddings)])).unsqueeze(0)
-                max_idx = torch.tensor(np.argmax([self.lang_padded[i][j].argmax().item() for j in range(int(self.lang_length[i].item()))])).unsqueeze(0)
-                # max_idx = torch.tensor(np.argmax([self.lang_padded[i][j].argmax().item() for j in range(12)])).unsqueeze(0)
-                # seq = self._pad_lang(self.lang[i], self.lang_length[i]) 
-                # embed_seq = seq @ self.embedding.weight
-                ### embed_seq = self.lang_padded[i] @ self.embedding.weight
-                
+            """with torch.no_grad():
                 image_features = self.listener.encode_image(images).float()
-                # utterance_features = self.listener.encode_text(utterance_tokens).float()
-                # utterance_features = self.encode_text(self.lang[i]).float() # clip update
-                ### utterance_features = self.listener.encode_text(embed_seq, max_idx).float() # clip update
-                utterance_features = self.listener.encode_text(self.lang_padded[i], max_idx).float()
-                # image_features /= image_features.clone().norm(dim=-1, keepdim=True)
-                image_features = image_features.clone() / image_features.clone().norm(dim=-1, keepdim=True)
-                # image_features /= image_features.norm(dim=-1, keepdim=True)
-                # utterance_features /= utterance_features.clone().norm(dim=-1, keepdim=True)
-                utterance_features = utterance_features.clone() / utterance_features.clone().norm(dim=-1, keepdim=True)
-                # utterance_features /= utterance_features.norm(dim=-1, keepdim=True)
-                image_probs = (100.0 * utterance_features @ image_features.T).softmax(dim=-1)
-                lis_scores.append(image_probs[0])
+                utterance_features = self.listener.encode_text(utterance_tokens).float()"""
+            # max_idx = torch.tensor(np.argmax([self.lang[i][j].argmax().item() for j in range(self.clip_text_config.max_position_embeddings)])).unsqueeze(0)
+            max_idx = torch.tensor(np.argmax([self.lang_padded[i][j].argmax().item() for j in range(int(self.lang_length[i].item()))])).unsqueeze(0)
+            # max_idx = torch.tensor(np.argmax([self.lang_padded[i][j].argmax().item() for j in range(12)])).unsqueeze(0)
+            # seq = self._pad_lang(self.lang[i], self.lang_length[i]) 
+            # embed_seq = seq @ self.embedding.weight
+            ### embed_seq = self.lang_padded[i] @ self.embedding.weight
+            
+            image_features = self.listener.encode_image(images).float()
+            # utterance_features = self.listener.encode_text(utterance_tokens).float()
+            # utterance_features = self.encode_text(self.lang[i]).float() # clip update
+            ### utterance_features = self.listener.encode_text(embed_seq, max_idx).float() # clip update
+            utterance_features = self.listener.encode_text(self.lang_padded[i], max_idx).float()
+            # image_features /= image_features.clone().norm(dim=-1, keepdim=True)
+            image_features = image_features.clone() / image_features.clone().norm(dim=-1, keepdim=True)
+            # image_features /= image_features.norm(dim=-1, keepdim=True)
+            # utterance_features /= utterance_features.clone().norm(dim=-1, keepdim=True)
+            utterance_features = utterance_features.clone() / utterance_features.clone().norm(dim=-1, keepdim=True)
+            # utterance_features /= utterance_features.norm(dim=-1, keepdim=True)
+            image_probs = (100.0 * utterance_features @ image_features.T).softmax(dim=-1)
+            lis_scores.append(image_probs[0])
 
-            # import pdb; pdb.set_trace()
-            lis_scores_final = torch.stack(lis_scores)
-            return lis_scores_final
+        # import pdb; pdb.set_trace()
+        lis_scores_final = torch.stack(lis_scores)
+        return lis_scores_final
     
     def _calculate_listener_scores_test_with_cliptokenize(self):
         # import pdb; pdb.set_trace()
@@ -238,9 +237,8 @@ class CLIPListenerScores(object):
             # embed_seq = seq @ self.embedding.weight
             ### embed_seq = self.lang_padded[i] @ self.embedding.weight
             
-            with torch.no_grad():
-                image_features = self.listener.encode_image(images).float()
-                utterance_features = self.listener.encode_text(utterance_tokens).float()
+            image_features = self.listener.encode_image(images).float()
+            utterance_features = self.listener.encode_text(utterance_tokens).float()
             # utterance_features = self.encode_text(self.lang[i]).float() # clip update
             ### utterance_features = self.listener.encode_text(embed_seq, max_idx).float() # clip update
             # image_features /= image_features.clone().norm(dim=-1, keepdim=True)

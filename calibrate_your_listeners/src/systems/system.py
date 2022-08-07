@@ -4,7 +4,6 @@ from calibrate_your_listeners import constants
 from calibrate_your_listeners.src.systems import utils
 import pytorch_lightning as pl
 import wandb
-torch.autograd.set_detect_anomaly(True)
 
 
 class BasicSystem(pl.LightningModule):

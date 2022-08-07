@@ -66,12 +66,16 @@ def run(config):
     system = SystemClass(config)
     # print(f"wandb run directory is {wandb.run.dir}")
 
+    # profiler = pl.profiler.AdvancedProfiler(output_filename="profile")
+    
     trainer = pl.Trainer(
         gpus=1,
         checkpoint_callback=ckpt_callback,
         max_epochs=int(config.training_params.num_epochs),
+        # max_epochs = 1, 
         min_epochs=int(config.training_params.num_epochs),
         check_val_every_n_epoch=1,
+        # profiler=profile
     )
 
     trainer.fit(system)
