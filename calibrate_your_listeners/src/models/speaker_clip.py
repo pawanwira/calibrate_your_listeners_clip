@@ -673,4 +673,4 @@ class Speaker(nn.Module): # L_0
         # return lang_final, lang_length, eos_loss
         # if lang_tensor.size(1) != 77:
         #     import pdb; pdb.set_trace()
-        return lang_tensor, lang_length, eos_loss, self.embedding # , lang_prob
+        return lang_tensor, lang_length, eos_loss # , self.embedding # , lang_prob

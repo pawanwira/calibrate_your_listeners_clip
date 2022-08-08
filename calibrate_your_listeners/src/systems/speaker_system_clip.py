@@ -49,9 +49,11 @@ class SpeakerCLIPSystem(system.BasicSystem):
 
         # import pdb; pdb.set_trace()
         self.exp_name = self.config.wandb_params.exp_name
-        path = os.path.join("clip", "lang_table", self.exp_name)
-        if not os.path.exists():
-            os.makedirs()
+        # path = os.path.join(constants.MAIN_REPO_DIR, "clip", "lang_table", "clip_vocab", self.exp_name)
+        # self.lang_table_path = os.path.join("data3", "pawanw", "lang_table", "clip_vocab", self.exp_name)
+        self.lang_table_path = os.path.join("/data3/pawanw/lang_table/clip_vocab", self.exp_name)
+        if not os.path.exists(self.lang_table_path):
+            os.makedirs(self.lang_table_path)
 
     def freeze_model(self, model):
         for p in model.parameters():
@@ -548,7 +550,8 @@ class SpeakerCLIPSystem(system.BasicSystem):
             # batch['imgs'], batch['label'].argmax(-1).long(), batch['utterance'])
             batch['imgs'].float(), batch['label'].argmax(-1).long(), batch['utterance'], batch['imgs_original'])
 
-        lang, lang_length, loss, embedding_module = self.model(imgs_speaker, labels)
+        # lang, lang_length, loss, embedding_module = self.model(imgs_speaker, labels)
+        lang, lang_length, loss = self.model(imgs_speaker, labels)
 
         if which_listener == "train":
             clip_scorer = self.clip_scorer(
@@ -559,7 +562,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
                 vocab_type=self.config.model_params.vocab,
                 lang=lang,
                 lang_length=lang_length,
-                embedding_module=embedding_module,
+                # embedding_module=embedding_module,
                 config = self.config
             )
             lis_scores = clip_scorer.listener_scores
@@ -589,8 +592,8 @@ class SpeakerCLIPSystem(system.BasicSystem):
         # teacher_forcing_loss = teacher_forcing_loss * 100
         
         return {
-            'loss': losses,
-            'acc': acc,
+            'pragmatic_loss': losses,
+            'pragmatic_acc': acc,
         #     'teacher_forcing_loss': teacher_forcing_loss
         #     'lang_table': df
         #     'lang_table': wandb.Table(
@@ -599,6 +602,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         }
 
     def save_lang_table(self, df, batch_idx, prefix):
+        # import pdb; pdb.set_trace()
         # vocab_type = self.config.model_params.vocab
         # listener_type=self.config.listener_params.type
         # if vocab_type == "shapeworld":
@@ -607,7 +611,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         #     vocab = "big_vocab"
         # import pdb; pdb.set_trace()
         vocab = "clip_vocab"
-        fpath = os.path.join(
+        """fpath = os.path.join(
                 constants.MAIN_REPO_DIR,
                 "clip",
                 "lang_table",
@@ -615,7 +619,11 @@ class SpeakerCLIPSystem(system.BasicSystem):
                 # listener_type,
                 self.exp_name,
                 f"{prefix}-{self.trainer.current_epoch}-{batch_idx}.csv"
-                )
+                )"""
+        fpath = os.path.join(
+            self.lang_table_path,
+            f"{prefix}-{self.trainer.current_epoch}-{batch_idx}.csv"
+        )
         df.to_csv(fpath, index=False, escapechar="\\")
 
     def _convert_results_to_floats(self, result):
@@ -634,6 +642,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         super().log_results(result, category)
 
     def training_step(self, batch, batch_idx):
+        # import pdb; pdb.set_trace()
         if self.config.training_params.tf:
             # result = self.get_losses_for_batch_tf_with_ood_loss(batch, batch_idx, which_listener="train", prefix="train")
             result = self.get_losses_for_batch_tf(batch, batch_idx, which_listener="train", prefix="train")
@@ -652,7 +661,6 @@ class SpeakerCLIPSystem(system.BasicSystem):
             # """tf_loss = result['teacher_forcing_loss']
             # return tf_loss"""
 
-
         if self.config.training_params.ood_loss:
             result = self.get_losses_for_batch_with_ood_loss(batch, batch_idx, which_listener="train", prefix="train")
             loss = result['loss']
@@ -661,14 +669,11 @@ class SpeakerCLIPSystem(system.BasicSystem):
             self.log_results(result=result, category="train")
             return ood_loss
             # return loss + ood_loss + tf_loss
-        
+
         result = self.get_losses_for_batch(batch, batch_idx, which_listener="train", prefix="train")
-        loss = result['loss']
-        # teacher_forcing_loss = result['teacher_forcing_loss']
+        prag_loss = result['pragmatic_loss']
         self.log_results(result=result, category="train")
-        # return loss + teacher_forcing_loss
-        # return teacher_forcing_loss
-        return loss
+        return prag_loss
 
     def test_step(self, batch, batch_idx):
         result = self.get_losses_for_batch(batch, batch_idx, which_listener="test", prefix="test")
@@ -739,15 +744,13 @@ class SpeakerCLIPSystem(system.BasicSystem):
             return ood_loss
 
         for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]:  
-            # import pdb; pdb.set_trace()
+            import pdb; pdb.set_trace()
             which_listener = "train" if "trainL0" in setting else "val"
             result = self.get_losses_for_batch(
                 batch[setting], batch_idx, which_listener=which_listener, prefix=setting)
-            loss = result['loss']
-            # teacher_forcing_loss = result['teacher_forcing_loss']
-        # return loss + teacher_forcing_loss
-        # return teacher_forcing_loss
-        return loss
+            prag_loss = result['pragmatic_loss']
+            self.log_results(result=result, category=setting)
+        return prag_loss
 
     def val_dataloader(self):
         # train L0 - train D
