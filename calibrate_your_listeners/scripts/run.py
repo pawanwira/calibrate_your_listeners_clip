@@ -14,6 +14,7 @@ import random, torch, numpy
 from omegaconf import OmegaConf
 import pytorch_lightning as pl
 import hydra
+# from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from calibrate_your_listeners.src.systems import (
     listener_system,
@@ -67,7 +68,8 @@ def run(config):
     # print(f"wandb run directory is {wandb.run.dir}")
 
     # profiler = pl.profiler.AdvancedProfiler(output_filename="profile")
-    
+    # early_stop_callback = EarlyStopping(monitor="val_loss", mode="min", patience=3, verbose=True) # TODO: temp, remove
+
     trainer = pl.Trainer(
         gpus=1,
         checkpoint_callback=ckpt_callback,
@@ -76,6 +78,7 @@ def run(config):
         min_epochs=int(config.training_params.num_epochs),
         check_val_every_n_epoch=1,
         # profiler=profile
+        # callbacks = [early_stop_callback] # TODO: temp, remove
     )
 
     trainer.fit(system)

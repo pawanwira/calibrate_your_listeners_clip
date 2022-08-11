@@ -24,7 +24,7 @@ dataset_params:
   multi_processing: False # True
   data_type: reference
   image_type: single
-  data_dir: clip/sw_10examples
+  data_dir: clip/sw_nonpragmatic
   num_shapeworld_tokens: 0
   color_target: null
   shape_target: null

@@ -11,6 +11,7 @@ class ListenerScores(object):
         self.listener_scores = self._calculate_listener_scores()
 
     def _calculate_listener_scores(self):
+        # import pdb; pdb.set_trace()
         lis_scores = []
         for l0 in self.listeners:
             # edit: mon jun 20
@@ -33,4 +34,5 @@ class ListenerScores(object):
         return lis_scores
 
     def get_average_l0_score(self):
+        # import pdb; pdb.set_trace()
         return torch.mean(self.listener_scores, axis=0) # average across listeners

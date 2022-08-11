@@ -42,6 +42,7 @@ def _init_vocab(langs):
 
 
 def load_raw_data(data_file, dataset):
+    # import pdb; pdb.set_trace()
     data = np.load(data_file)
     # Preprocessing/tokenization
     return {
@@ -145,6 +146,7 @@ class Shapeworld(data.Dataset):
             generate_shapeworld_data.run(self.config.dataset_params)
 
     def load_data(self):
+        # import pdb; pdb.set_trace()
         if self.train and self.name == "l0":
             self.filepaths = self.l0_filepaths[:-1]
         elif not self.train and self.name == "l0":

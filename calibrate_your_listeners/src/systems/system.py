@@ -70,6 +70,9 @@ class BasicSystem(pl.LightningModule):
         result = self.get_losses_for_batch(batch, batch_idx)
         loss = result['loss']
 
+        # TODO: remove, TEMP for early stopping for listener training
+        # self.log("val_loss", loss)
+
         self.log_results(result=result, category="val")
         return loss
 
