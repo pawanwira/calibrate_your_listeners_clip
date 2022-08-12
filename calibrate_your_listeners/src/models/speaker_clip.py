@@ -61,9 +61,12 @@ class Speaker(nn.Module): # L_0
 
         self.image_feat_size = self.feat_model.final_feat_dim
         self.n_images = self.config.dataset_params.n_images
-        self.imgFeat2hidden = nn.Linear(
-            self.n_images * (self.image_feat_size + 1),
-            self.hidden_size)
+        if self.config.model_params.naive:
+            self.imgFeat2hidden = nn.Linear(self.image_feat_size, self.hidden_size)
+        else:
+            self.imgFeat2hidden = nn.Linear(
+                self.n_images * (self.image_feat_size + 1),
+                self.hidden_size)
 
     def init_lang_model(self):
         # self.hidden_size = self.clip_text_config.hidden_size  # edit: jul 14
@@ -103,6 +106,11 @@ class Speaker(nn.Module): # L_0
         return self.parameters()
 
     def embed_features(self, feats, targets):
+        # import pdb; pdb.set_trace()
+        if self.config.model_params.naive:
+            feats = torch.from_numpy(np.array([np.array(feat[targets[idx],:,:,:].cpu()) for idx, feat in enumerate(feats)])).cuda()
+            feats_emb = self.feat_model(feats.cuda())
+            return feats_emb
         batch_size = feats.shape[0]
         n_obj = feats.shape[1]
         rest = feats.shape[2:]

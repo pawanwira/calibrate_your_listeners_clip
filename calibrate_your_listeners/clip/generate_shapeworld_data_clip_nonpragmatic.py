@@ -873,7 +873,7 @@ def run(config):
     prefix = config.dataset_params.file_name_prefix
     n_examples = config.dataset_params.n_examples
     if prefix == None:
-        files = [f"{data_dir}/reference-{n_examples}-{idx}.npz" for idx in range(0, 75)]
+        files = [f"{data_dir}/reference-{n_examples}-{idx}.npz" for idx in range(60, 75)]
     else:
         files = [f"{data_dir}/{prefix}-reference-{n_examples}-{idx}.npz" for idx in range(0, 1)]
     

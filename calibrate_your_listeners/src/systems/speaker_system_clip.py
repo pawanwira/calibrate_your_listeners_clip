@@ -52,7 +52,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         self.exp_name = self.config.wandb_params.exp_name
         # path = os.path.join(constants.MAIN_REPO_DIR, "clip", "lang_table", "clip_vocab", self.exp_name)
         # self.lang_table_path = os.path.join("data3", "pawanw", "lang_table", "clip_vocab", self.exp_name)
-        self.lang_table_path = os.path.join("/data3/pawanw/lang_table/clip_vocab", self.exp_name)
+        self.lang_table_path = os.path.join("/data2/pawanw/lang_table/clip_vocab", self.exp_name)
         if not os.path.exists(self.lang_table_path):
             os.makedirs(self.lang_table_path)
 
