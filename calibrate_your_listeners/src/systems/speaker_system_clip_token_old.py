@@ -3,7 +3,7 @@ from calibrate_your_listeners.src.systems import system
 from calibrate_your_listeners.src.models import (
     dropout_listener,
     listener,
-    speaker_clip,
+    speaker_clip_token,
 )
 from calibrate_your_listeners.src.objectives import (
     listener_scores,
@@ -185,7 +185,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
 
 
     def load_speaker(self):
-        self.model = speaker_clip.Speaker(config=self.config)
+        self.model = speaker_clip_token.Speaker(config=self.config)
 
     def set_models(self):
         num_tokens = len(self.train_dataset.vocab['w2i'].keys())
@@ -243,7 +243,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
             })
         return pd.DataFrame(data)
 
-    def construct_lang_table(self, lang, gt, lis_scores):
+    def construct_lang_table(self, lang, gt, lis_scores, token_prag_loss):
         # import pdb; pdb.set_trace()
         data = []
         text_gts = self._process_gt(gt)
@@ -251,11 +251,12 @@ class SpeakerCLIPSystem(system.BasicSystem):
             lang = {'input_ids': lang.argmax(-1)}
         text_langs = self._process_gt_clip(lang) # self.train_dataset.to_text(lang.argmax(-1))
         entropies = self.get_entropies(lis_scores)
-        for e, ls, l, gt in zip(entropies, lis_scores, text_langs, text_gts):
+        for e, ls, tpl, l, gt in zip(entropies, lis_scores, token_prag_loss, text_langs, text_gts):
             data.append({
                 'epoch': self.trainer.current_epoch,
                 'entropy': e,
                 'lis_scores': ls.tolist(),
+                'token_prag_loss': tpl.item(),
                 'speaker_utterance': l,
                 'ground_truth': gt
             })
@@ -296,7 +297,8 @@ class SpeakerCLIPSystem(system.BasicSystem):
         tf_loss = loss_f(lang_out.cuda(), torch.max(gt, 1)[1].cuda())
         return tf_loss, tf_onehots
 
-    def get_teacher_forcing_loss(self, gt, img, targets):
+    def get_teacher_forcing_loss(self, gt, img, targets, img_clip):
+        import pdb; pdb.set_trace()
         # import pdb; pdb.set_trace()
                             # listener, vocab, targets, sw):
         loss = 0.0
@@ -315,7 +317,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         # lang_out = self.model.teacher_forcing_forward(feats=img, seq=gt_onehot,
         # lang_out, tf_onehots = self.model.teacher_forcing_forward(feats=img, targets=targets, seq=gt_onehot)
         if self.config.training_params.tf_inputnotgt:
-            lang, lang_length, eos_loss, lang_4_tfloss = self.model.teacher_forcing_forward_inputnotgt(feats=img, targets=targets, seq=gt_onehot)
+            lang, lang_length, eos_loss, lang_4_tfloss, token_prag_loss = self.model.teacher_forcing_forward_inputnotgt(feats=img, feats_clip=img_clip, targets=targets, seq=gt_onehot)
         else:
             lang, lang_length, eos_loss, lang_4_tfloss = self.model.teacher_forcing_forward(feats=img, targets=targets, seq=gt_onehot)
         # batch_size = lang_out.shape[0]
@@ -332,17 +334,18 @@ class SpeakerCLIPSystem(system.BasicSystem):
         if lang_4_tfloss.size(0) != gt.size(0):
             import pdb; pdb.set_trace()
         tf_loss = loss_f(lang_4_tfloss.cuda(), torch.max(gt, 1)[1].cuda())
-        return lang, lang_length, tf_loss # TODO: return lang, lang_length, tf_loss
+        return lang, lang_length, tf_loss, token_prag_loss # TODO: return lang, lang_length, tf_loss
 
     # TEACHER FORCING
     def get_losses_for_batch_tf(self, batch, batch_idx, which_listener, prefix):
+        import pdb; pdb.set_trace()
         # import pdb; pdb.set_trace()
         # imgs, labels, utterances = (
         imgs_speaker, labels, utterances, imgs_clip = (
             # batch['imgs'], batch['label'].argmax(-1).long(), batch['utterance'])
             batch['imgs'].float(), batch['label'].argmax(-1).long(), batch['utterance'], batch['imgs_original'])
 
-        lang, lang_length, tf_loss = self.get_teacher_forcing_loss(utterances, imgs_speaker, labels)
+        lang, lang_length, tf_loss, token_prag_loss = self.get_teacher_forcing_loss(utterances, imgs_speaker, labels, imgs_clip)
 
         # lang_nontf, lang_length_nontf, loss_nontf, embedding_module_nontf = self.model(imgs_speaker, labels) 
 
@@ -396,7 +399,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
             losses = loss(lis_scores, labels)
             acc = (lis_pred == labels).float().mean()
 
-        df=self.construct_lang_table(lang=lang, gt=utterances, lis_scores=lis_scores)
+        df=self.construct_lang_table(lang=lang, gt=utterances, lis_scores=lis_scores, token_prag_loss=token_prag_loss)
         self.save_lang_table(df, batch_idx, prefix)
 
         # self.construct_and_save_lang_table(lang=lang, gt=utterances, lis_scores=lis_scores, batch_idx=batch_idx, prefix=prefix)
@@ -406,7 +409,8 @@ class SpeakerCLIPSystem(system.BasicSystem):
             'pragmatic_loss': losses,
             'pragmatic_acc': acc,
             'teacher_forcing_loss': tf_loss,
-            'total_loss': losses + tf_loss
+            'total_loss': losses + tf_loss,
+            'token_pragmatic_loss': token_prag_loss
         #     'lang_table': df
         #     'lang_table': wandb.Table(
         #         dataframe=self.construct_lang_table(lang=lang, gt=utterances)
@@ -521,9 +525,11 @@ class SpeakerCLIPSystem(system.BasicSystem):
             result = self.get_losses_for_batch_tf(batch, batch_idx, which_listener="train", prefix="train")
             prag_loss = result['pragmatic_loss']
             tf_loss = result['teacher_forcing_loss']
+            token_prag_loss = result['token_prag_loss']
             self.log_results(result=result, category="train")
             loss_final = ((prag_loss * self.config.training_params.prag_lmbd)
-                            + (tf_loss * self.config.training_params.tf_lmbd))
+                            + (tf_loss * self.config.training_params.tf_lmbd)
+                            + (token_prag_loss * self.config.training_params.token_prag_lmbd))
             return loss_final
 
             # # L_p + L_tf:
@@ -568,11 +574,13 @@ class SpeakerCLIPSystem(system.BasicSystem):
                 result = self.get_losses_for_batch_tf(batch[setting], batch_idx, which_listener=which_listener, prefix=setting)
                 prag_loss = result['pragmatic_loss']
                 tf_loss = result['teacher_forcing_loss']
+                token_prag_loss = result['token_prag_loss']
                 # total_loss = result['total_loss']
                 # ood_loss = result['ood_loss']
                 self.log_results(result=result, category=setting)
                 loss_final = ((prag_loss * self.config.training_params.prag_lmbd)
-                            + (tf_loss * self.config.training_params.tf_lmbd))
+                            + (tf_loss * self.config.training_params.tf_lmbd)
+                            + (token_prag_loss * self.config.training_params.token_prag_lmbd))
             return loss_final
 
         if self.config.training_params.ood_loss:

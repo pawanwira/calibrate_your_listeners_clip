@@ -135,40 +135,24 @@ class SpeakerCLIPSystem(system.BasicSystem):
         self.clip_scorer = clip_listener_scores.CLIPListenerScores
         self.tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
 
-        # self.train_listeners = []
+        self.train_listeners = []
         # import pdb; pdb.set_trace()
         self.val_listeners = []
         # Training listener
-        """for listener_idx in range(0, self.config.listener_params.ensemble_size):
+        for listener_idx in range(0, self.config.listener_params.ensemble_size):
             print('Loading training listener')
             print(f'Train idx: {listener_idx}')
             listener = self._load_listener(
                 listener_type=self.config.listener_params.type,
                 vocab_type= 'big_clip_vocab', # self.config.model_params.vocab,
-                listener_idx = listener_idx + 7 # if self.config.dataset_params.data_dir == "clip/sw" else listener_idx + 1
+                listener_idx = listener_idx + 1 # if self.config.dataset_params.data_dir == "clip/sw" else listener_idx + 1
                 )
             self.freeze_model(listener)
             self.train_listeners.append(listener)
-        print(f'A training listener arch: {self.train_listeners[0]}')"""
+        print(f'A training listener arch: {self.train_listeners[0]}')
 
-        """for listener_idx in range(self.config.listener_params.ensemble_size,
+        for listener_idx in range(self.config.listener_params.ensemble_size,
                                   2*self.config.listener_params.ensemble_size):
-            # Val listeners
-            print('Loading validation listener')
-            # val_idx = (self.config.listener_params.val_idx
-            #            if self.config.listener_params.val_idx else listener_idx)
-            print(f'Val idx: {listener_idx}')
-            listener = self._load_listener(
-                listener_type=self.config.listener_params.type,
-                vocab_type='big_clip_vocab', # self.config.model_params.vocab,
-                listener_idx = listener_idx + 7 # if self.config.dataset_params.data_dir == "clip/sw" else listener_idx + 1
-                )
-            self.freeze_model(listener)
-            self.val_listeners.append(listener)
-        # print(f'A training listener arch: {self.train_listeners[0]}')
-        print(f'A validation listener arch: {self.val_listeners[0]}')"""
-
-        for listener_idx in range(0, self.config.listener_params.ensemble_size):
             # Val listeners
             print('Loading validation listener')
             # val_idx = (self.config.listener_params.val_idx
@@ -181,7 +165,23 @@ class SpeakerCLIPSystem(system.BasicSystem):
                 )
             self.freeze_model(listener)
             self.val_listeners.append(listener)
+        # print(f'A training listener arch: {self.train_listeners[0]}')
         print(f'A validation listener arch: {self.val_listeners[0]}')
+
+        """for listener_idx in range(0, self.config.listener_params.ensemble_size):
+            # Val listeners
+            print('Loading validation listener')
+            # val_idx = (self.config.listener_params.val_idx
+            #            if self.config.listener_params.val_idx else listener_idx)
+            print(f'Val idx: {listener_idx}')
+            listener = self._load_listener(
+                listener_type=self.config.listener_params.type,
+                vocab_type='big_clip_vocab', # self.config.model_params.vocab,
+                listener_idx = listener_idx + 1 # if self.config.dataset_params.data_dir == "clip/sw" else listener_idx + 1
+                )
+            self.freeze_model(listener)
+            self.val_listeners.append(listener)
+        print(f'A validation listener arch: {self.val_listeners[0]}')"""
 
 
     def load_speaker(self):
@@ -348,38 +348,22 @@ class SpeakerCLIPSystem(system.BasicSystem):
 
         # import pdb; pdb.set_trace()
         if which_listener == "train":
-            if self.config.training_params.trainL0:
-                l0_scorer = self.l0_scorer(
-                listeners=self.train_listeners,
-                imgs=imgs_speaker,
+            clip_scorer = self.clip_scorer(
+                listener=self.clip_listener,
+                imgs=imgs_clip,
+                tokenizer = self.tokenizer,
+                preprocess=self.preprocess,
+                vocab_type=self.config.model_params.vocab,
                 lang=lang,
                 lang_length=lang_length,
-                config=self.config
-                )
-                lis_scores = l0_scorer.get_average_l0_score()
-                lis_pred = lis_scores.argmax(1)
-                loss = nn.CrossEntropyLoss()
-                losses = loss(lis_scores, labels)
-                acc = (lis_pred == labels).float().mean()
-            else:
-                clip_scorer = self.clip_scorer(
-                    listener=self.clip_listener,
-                    imgs=imgs_clip,
-                    tokenizer = self.tokenizer,
-                    preprocess=self.preprocess,
-                    vocab_type=self.config.model_params.vocab,
-                    lang=lang,
-                    lang_length=lang_length,
-                    # embedding_module=embedding_module
-                    config = self.config
-                )
-                lis_scores = clip_scorer.listener_scores
-                import pdb; pdb.set_trace()
-                # losses = -torch.log(lis_scores[:, 0]).mean()
-                loss = nn.CrossEntropyLoss()
-                lis_pred = lis_scores.argmax(1)
-                losses = loss(lis_scores, labels)
-                acc = (lis_pred == labels).float().mean()
+                # embedding_module=embedding_module
+                config = self.config
+            )
+            lis_scores = clip_scorer.listener_scores
+            loss = nn.CrossEntropyLoss()
+            lis_pred = lis_scores.argmax(1)
+            losses = loss(lis_scores, labels)
+            acc = (lis_pred == labels).float().mean()
         else:
             l0_scorer = self.l0_scorer(
                 listeners=self.val_listeners,
@@ -389,8 +373,6 @@ class SpeakerCLIPSystem(system.BasicSystem):
                 config=self.config
             )
             lis_scores = l0_scorer.get_average_l0_score()
-            import pdb; pdb.set_trace()
-            # losses = -torch.log(lis_scores[:, 0]).mean()
             lis_pred = lis_scores.argmax(1)
             loss = nn.CrossEntropyLoss()
             losses = loss(lis_scores, labels)

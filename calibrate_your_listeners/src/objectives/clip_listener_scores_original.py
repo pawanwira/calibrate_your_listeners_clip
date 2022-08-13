@@ -9,14 +9,8 @@ from calibrate_your_listeners import constants
 from transformers import CLIPTokenizer
 
 class CLIPListenerScores(object):
-
+    
     def __init__(self, listener, imgs, tokenizer, preprocess, vocab_type, lang, lang_length, embedding_module=None, config=None):
-        # import pdb; pdb.set_trace()
-        # self.listener, self.preprocess = clip.load("ViT-B/32")
-        # self.freeze_model(self.listener)
-        # self.tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
-
-        self.config = config
         self.listener = listener
         self.imgs = imgs
         # self.df = df
@@ -30,7 +24,8 @@ class CLIPListenerScores(object):
         self.lang_padded = self.pad_lang(self.lang)
         self.tokenizer = tokenizer
         self._construct_text_langs_list()
-        
+
+        self.config = config
         if self.config.training_params.ood_loss:
             self.listener_scores, self.ood_losses = self._calculate_listener_scores_with_ood_loss()
         else:
@@ -84,7 +79,6 @@ class CLIPListenerScores(object):
         return utterance_tokens
 
     def pad_lang(self, lang):
-        # import pdb; pdb.set_trace()
         lang_perm = lang.permute(1, 0, 2)
         batch_size = self.imgs.size(0)
         pad_onehot = torch.zeros(batch_size, 1, self.clip_text_config.vocab_size, device=self.lang.device)
@@ -98,7 +92,7 @@ class CLIPListenerScores(object):
         return lang_padded_perm
 
     def get_ood_loss(self, image_features, utterance_features):
-        # import pdb; pdb.set_trace()
+        import pdb; pdb.set_trace()
         # id = in-distribution
         id_labels = ["a shape"]
         id_labels_tokens = clip.tokenize(id_labels).cuda()
@@ -147,15 +141,15 @@ class CLIPListenerScores(object):
                 utterance_features = self.listener.encode_text(utterance_tokens).float()"""
             # max_idx = torch.tensor(np.argmax([self.lang[i][j].argmax().item() for j in range(self.clip_text_config.max_position_embeddings)])).unsqueeze(0)
             # max_idx = torch.tensor(np.argmax([self.lang_padded[i][j].argmax().item() for j in range(int(self.lang_length[i].item()))])).unsqueeze(0)
-            max_idx = torch.tensor(np.argmax([self.lang_padded[i][j].argmax().item() for j in range(12)])).unsqueeze(0)  
+            max_idx = torch.tensor(np.argmax([self.lang_padded[i][j].argmax().item() for j in range(12)])).unsqueeze(0)
             # seq = self._pad_lang(self.lang[i], self.lang_length[i]) 
             # embed_seq = seq @ self.embedding.weight
             ### embed_seq = self.lang_padded[i] @ self.embedding.weight
+            
             image_features = self.listener.encode_image(images).float()
             # utterance_features = self.listener.encode_text(utterance_tokens).float()
             # utterance_features = self.encode_text(self.lang[i]).float() # clip update
             ### utterance_features = self.listener.encode_text(embed_seq, max_idx).float() # clip update
-            # import pdb; pdb.set_trace()
             utterance_features = self.listener.encode_text(self.lang_padded[i], max_idx).float()
             # image_features /= image_features.norm(dim=-1, keepdim=True)
             # image_features /= image_features.clone().norm(dim=-1, keepdim=True)

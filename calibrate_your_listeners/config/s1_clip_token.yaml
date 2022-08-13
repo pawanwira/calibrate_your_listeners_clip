@@ -1,5 +1,5 @@
 pl:
-  system: s1_clip
+  system: s1_clip_token
 wandb_params:
   project: calibrate_your_listeners
   exp_name: s1
@@ -43,6 +43,7 @@ training_params:
   tf_inputnotgt: False
   tf_lmbd: 0
   prag_lmbd: 0
+  token_lmbd: 0
   trainL0: False
 optim_params:
   batch_size: 32
