@@ -53,7 +53,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         self.exp_name = self.config.wandb_params.exp_name
         # path = os.path.join(constants.MAIN_REPO_DIR, "clip", "lang_table", "clip_vocab", self.exp_name)
         # self.lang_table_path = os.path.join("data3", "pawanw", "lang_table", "clip_vocab", self.exp_name)
-        self.lang_table_path = os.path.join("/data4/pawanw/lang_table/clip_vocab", self.exp_name)
+        self.lang_table_path = os.path.join("/data3/pawanw/lang_table/clip_vocab", self.exp_name)
         if not os.path.exists(self.lang_table_path):
             os.makedirs(self.lang_table_path)
 
@@ -264,9 +264,9 @@ class SpeakerCLIPSystem(system.BasicSystem):
             })
         return pd.DataFrame(data)
     
-    def construct_and_save_lang_table(self, lang, gt, lis_scores, batch_idx, prefix):
+    def construct_and_save_lang_table(self, lang, gt, lis_scores, batch_idx, prefix, token_losses):
         if (self.trainer.current_epoch > 90) or (batch_idx == 0):
-            df=self.construct_lang_table(lang, gt, lis_scores)
+            df=self.construct_lang_table(lang, gt, lis_scores, token_losses)
             self.save_lang_table(df, batch_idx, prefix)
     
     def get_teacher_forcing_loss_original(self, gt, img, targets):
@@ -419,10 +419,10 @@ class SpeakerCLIPSystem(system.BasicSystem):
             losses = loss(lis_scores, labels)
             acc = (lis_pred == labels).float().mean()
 
-        df=self.construct_lang_table(lang=lang, gt=utterances, lis_scores=lis_scores, token_losses=token_losses)
-        self.save_lang_table(df, batch_idx, prefix)
+        # df=self.construct_lang_table(lang=lang, gt=utterances, lis_scores=lis_scores, token_losses=token_losses)
+        # self.save_lang_table(df, batch_idx, prefix)
 
-        # self.construct_and_save_lang_table(lang=lang, gt=utterances, lis_scores=lis_scores, batch_idx=batch_idx, prefix=prefix)
+        self.construct_and_save_lang_table(lang=lang, gt=utterances, lis_scores=lis_scores, batch_idx=batch_idx, prefix=prefix, token_losses=token_losses)
 
         # import pdb; pdb.set_trace()
         return {

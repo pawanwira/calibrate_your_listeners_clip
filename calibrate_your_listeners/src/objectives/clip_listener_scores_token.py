@@ -103,7 +103,7 @@ class CLIPListenerTokenScores(object):
                 partial_lang[eos_token_loc] = eos_onehot
                 # max_idx = torch.tensor(np.argmax([self.lang_padded[i][j].argmax().item() for j in range(int(self.lang_length[i].item()))])).unsqueeze(0)
                 max_idx = torch.tensor(np.argmax([partial_lang[j].argmax().item() for j in range(int(self.lang_length[i].item()))])).unsqueeze(0)
-                utterance_features = self.listener.encode_text(self.lang_padded[i], max_idx).float()
+                utterance_features = self.listener.encode_text(partial_lang, max_idx).float()
                 utterance_features = utterance_features.clone() / utterance_features.clone().norm(dim=-1, keepdim=True)
                 image_probs = (100.0 * utterance_features @ image_features.T).softmax(dim=-1)
                 lis_scores.append(image_probs[0])
@@ -113,7 +113,7 @@ class CLIPListenerTokenScores(object):
             if num_tokens == 0:
                 # loss = torch.Tensor([-torch.log(torch.Tensor([1/3]))])
                 max_idx = torch.tensor(np.argmax([partial_lang[j].argmax().item() for j in range(int(self.lang_length[i].item()))])).unsqueeze(0)
-                utterance_features = self.listener.encode_text(self.lang_padded[i], max_idx).float()
+                utterance_features = self.listener.encode_text(partial_lang, max_idx).float()
                 utterance_features = utterance_features.clone() / utterance_features.clone().norm(dim=-1, keepdim=True)
                 image_probs = (100.0 * utterance_features @ image_features.T).softmax(dim=-1)
                 lis_scores.append(image_probs[0])

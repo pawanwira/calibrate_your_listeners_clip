@@ -374,7 +374,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
                     config = self.config
                 )
                 lis_scores = clip_scorer.listener_scores
-                import pdb; pdb.set_trace()
+                # import pdb; pdb.set_trace()
                 # losses = -torch.log(lis_scores[:, 0]).mean()
                 loss = nn.CrossEntropyLoss()
                 lis_pred = lis_scores.argmax(1)
@@ -389,7 +389,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
                 config=self.config
             )
             lis_scores = l0_scorer.get_average_l0_score()
-            import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
             # losses = -torch.log(lis_scores[:, 0]).mean()
             lis_pred = lis_scores.argmax(1)
             loss = nn.CrossEntropyLoss()

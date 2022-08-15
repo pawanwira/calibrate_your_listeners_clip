@@ -52,7 +52,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         self.exp_name = self.config.wandb_params.exp_name
         # path = os.path.join(constants.MAIN_REPO_DIR, "clip", "lang_table", "clip_vocab", self.exp_name)
         # self.lang_table_path = os.path.join("data3", "pawanw", "lang_table", "clip_vocab", self.exp_name)
-        self.lang_table_path = os.path.join("/data4/pawanw/lang_table/clip_vocab", self.exp_name)
+        self.lang_table_path = os.path.join("/data3/pawanw/lang_table/clip_vocab", self.exp_name)
         if not os.path.exists(self.lang_table_path):
             os.makedirs(self.lang_table_path)
 
@@ -118,7 +118,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
 
     def load_listeners(self):
         """self.listener, self.preprocess = clip.load("ViT-B/32")
-        self.listener.cuda().eval()
+        self.listener.cuda().eval(d)
         self.freeze_model(self.listener)"""
 
         """self.old_listener = self._load_listener(
@@ -129,14 +129,13 @@ class SpeakerCLIPSystem(system.BasicSystem):
         self.freeze_model(self.old_listener)"""
 
         # CLIP as listener
-        self.clip_listener, self.preprocess = clip.load("ViT-B/32")
-        # self.clip_listener.cuda().eval()
-        self.freeze_model(self.clip_listener)
-        self.clip_scorer = clip_listener_scores.CLIPListenerScores
+        # self.clip_listener, self.preprocess = clip.load("ViT-B/32")
+        # self.freeze_model(self.clip_listener)
+        # self.clip_scorer = clip_listener_scores.CLIPListenerScores
         self.tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
 
-        self.train_listeners = []
         # import pdb; pdb.set_trace()
+        self.train_listeners = []
         self.val_listeners = []
         # Training listener
         for listener_idx in range(0, self.config.listener_params.ensemble_size):
@@ -165,7 +164,6 @@ class SpeakerCLIPSystem(system.BasicSystem):
                 )
             self.freeze_model(listener)
             self.val_listeners.append(listener)
-        # print(f'A training listener arch: {self.train_listeners[0]}')
         print(f'A validation listener arch: {self.val_listeners[0]}')
 
         """for listener_idx in range(0, self.config.listener_params.ensemble_size):
@@ -336,7 +334,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
 
     # TEACHER FORCING
     def get_losses_for_batch_tf(self, batch, batch_idx, which_listener, prefix):
-        # import pdb; pdb.set_trace()
+        import pdb; pdb.set_trace()
         # imgs, labels, utterances = (
         imgs_speaker, labels, utterances, imgs_clip = (
             # batch['imgs'], batch['label'].argmax(-1).long(), batch['utterance'])
@@ -348,20 +346,18 @@ class SpeakerCLIPSystem(system.BasicSystem):
 
         # import pdb; pdb.set_trace()
         if which_listener == "train":
-            clip_scorer = self.clip_scorer(
-                listener=self.clip_listener,
-                imgs=imgs_clip,
-                tokenizer = self.tokenizer,
-                preprocess=self.preprocess,
-                vocab_type=self.config.model_params.vocab,
+            l0_scorer = self.l0_scorer(
+                listeners=self.train_listeners,
+                imgs=imgs_speaker,
                 lang=lang,
                 lang_length=lang_length,
-                # embedding_module=embedding_module
-                config = self.config
+                config=self.config
             )
-            lis_scores = clip_scorer.listener_scores
-            loss = nn.CrossEntropyLoss()
+            lis_scores = l0_scorer.get_average_l0_score()
+            # import pdb; pdb.set_trace()
+            # losses = -torch.log(lis_scores[:, 0]).mean()
             lis_pred = lis_scores.argmax(1)
+            loss = nn.CrossEntropyLoss()
             losses = loss(lis_scores, labels)
             acc = (lis_pred == labels).float().mean()
         else:
@@ -373,15 +369,17 @@ class SpeakerCLIPSystem(system.BasicSystem):
                 config=self.config
             )
             lis_scores = l0_scorer.get_average_l0_score()
+            # import pdb; pdb.set_trace()
+            # losses = -torch.log(lis_scores[:, 0]).mean()
             lis_pred = lis_scores.argmax(1)
             loss = nn.CrossEntropyLoss()
             losses = loss(lis_scores, labels)
             acc = (lis_pred == labels).float().mean()
 
-        df=self.construct_lang_table(lang=lang, gt=utterances, lis_scores=lis_scores)
-        self.save_lang_table(df, batch_idx, prefix)
+        # df=self.construct_lang_table(lang=lang, gt=utterances, lis_scores=lis_scores)
+        # self.save_lang_table(df, batch_idx, prefix)
 
-        # self.construct_and_save_lang_table(lang=lang, gt=utterances, lis_scores=lis_scores, batch_idx=batch_idx, prefix=prefix)
+        self.construct_and_save_lang_table(lang=lang, gt=utterances, lis_scores=lis_scores, batch_idx=batch_idx, prefix=prefix)
 
         # import pdb; pdb.set_trace()
         return {
