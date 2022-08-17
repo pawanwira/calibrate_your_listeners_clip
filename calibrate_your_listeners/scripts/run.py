@@ -21,7 +21,8 @@ from calibrate_your_listeners.src.systems import (
     speaker_system,
     speaker_system_clip,
     speaker_system_clip_token,
-    speaker_system_clip_withtrainL0
+    speaker_system_clip_withtrainL0,
+    speaker_system_clip_withtrainL0_withvalCLIP
 )
 
 from calibrate_your_listeners import constants
@@ -32,7 +33,8 @@ NAME2SYSTEM = {
     's1_clip': speaker_system_clip.SpeakerCLIPSystem,
     's1': speaker_system.SpeakerSystem,
     's1_clip_token': speaker_system_clip_token.SpeakerCLIPSystem,
-    's1_trainL0': speaker_system_clip_withtrainL0.SpeakerCLIPSystem
+    's1_trainL0': speaker_system_clip_withtrainL0.SpeakerCLIPSystem,
+    's1_trainL0_valCLIP': speaker_system_clip_withtrainL0_withvalCLIP.SpeakerCLIPSystem
 }
 
 torch.backends.cudnn.benchmark = True
@@ -59,14 +61,25 @@ def run(config):
         tags=config.wandb_params.tags
     )
 
+    # import pdb; pdb.set_trace()
     CKPT_DIR = os.path.join(constants.ROOT_DIR, 'src/models/checkpoints', config.wandb_params.exp_name)
+    if not os.path.exists(CKPT_DIR):
+        os.makedirs(CKPT_DIR)
     print(f"CKPT AT {CKPT_DIR}")
-    ckpt_callback = pl.callbacks.ModelCheckpoint(
-        CKPT_DIR,
-        save_top_k=-1,
-        every_n_epochs=config.training_params.checkpoint_steps,
+    # ckpt_callback = pl.callbacks.ModelCheckpoint(
+    #     CKPT_DIR,
+    #     save_top_k=-1,
+    #     every_n_epochs=config.training_params.checkpoint_steps,
+    # )
+    checkpoint_callback = pl.callbacks.ModelCheckpoint(
+        monitor="val_prag_loss",
+        dirpath=CKPT_DIR,
+        filename="s1-{epoch:02d}-{val_prag_loss:.2f}",
+        save_top_k=3,
+        mode="min",
     )
 
+    # import pdb; pdb.set_trace()
     SystemClass = NAME2SYSTEM[config.pl.system]
     system = SystemClass(config)
     # print(f"wandb run directory is {wandb.run.dir}")
@@ -76,7 +89,8 @@ def run(config):
 
     trainer = pl.Trainer(
         gpus=1,
-        checkpoint_callback=ckpt_callback,
+        # checkpoint_callback=ckpt_callback,
+        callbacks=[checkpoint_callback],
         max_epochs=int(config.training_params.num_epochs),
         # max_epochs = 1, 
         min_epochs=int(config.training_params.num_epochs),
@@ -100,6 +114,3 @@ def seed_everything(seed, use_cuda=True):
 
 if __name__ == "__main__":
     run()
-
-
-
