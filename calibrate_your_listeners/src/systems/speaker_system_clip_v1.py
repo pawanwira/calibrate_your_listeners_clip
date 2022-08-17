@@ -136,7 +136,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         self.tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
 
         # self.train_listeners = []
-        # import pdb; pdb.set_trace()
+        import pdb; pdb.set_trace()
         self.val_listeners = []
         # Training listener
         """for listener_idx in range(0, self.config.listener_params.ensemble_size):
@@ -267,8 +267,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
     #         self.save_lang_table(df, batch_idx, prefix)
 
     def construct_and_save_lang_table(self, lang, gt, lis_scores, batch_idx, prefix):
-        # if (self.trainer.current_epoch < 6) or (self.trainer.current_epoch > 90) or (batch_idx == 0) or (batch_idx == 10):
-        if (self.trainer.current_epoch > 75) or (batch_idx % 10 == 0):
+        if (self.trainer.current_epoch < 6) or (self.trainer.current_epoch > 90) or (batch_idx == 0) or (batch_idx == 10):
             df=self.construct_lang_table(lang, gt, lis_scores)
             self.save_lang_table(df, batch_idx, prefix)
     
@@ -342,8 +341,10 @@ class SpeakerCLIPSystem(system.BasicSystem):
 
     # TEACHER FORCING
     def get_losses_for_batch_tf(self, batch, batch_idx, which_listener, prefix):
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
+        # imgs, labels, utterances = (
         imgs_speaker, labels, utterances, imgs_clip = (
+            # batch['imgs'], batch['label'].argmax(-1).long(), batch['utterance'])
             batch['imgs'].float(), batch['label'].argmax(-1).long(), batch['utterance'], batch['imgs_original'])
 
         lang, lang_length, tf_loss = self.get_teacher_forcing_loss(utterances, imgs_speaker, labels)
@@ -351,7 +352,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         # lang_nontf, lang_length_nontf, loss_nontf, embedding_module_nontf = self.model(imgs_speaker, labels) 
 
         # import pdb; pdb.set_trace()
-        if (which_listener == "clip") or (which_listener == "train"):
+        if which_listener == "train":
             clip_scorer = self.clip_scorer(
                 listener=self.clip_listener,
                 imgs=imgs_clip,
@@ -360,9 +361,12 @@ class SpeakerCLIPSystem(system.BasicSystem):
                 vocab_type=self.config.model_params.vocab,
                 lang=lang,
                 lang_length=lang_length,
+                # embedding_module=embedding_module
                 config = self.config
             )
             lis_scores = clip_scorer.listener_scores
+            # import pdb; pdb.set_trace()
+            # losses = -torch.log(lis_scores[:, 0]).mean()
             loss = nn.CrossEntropyLoss()
             lis_pred = lis_scores.argmax(1)
             losses = loss(lis_scores, labels)
@@ -376,6 +380,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
                 config=self.config
             )
             lis_scores = l0_scorer.get_average_l0_score()
+
             lis_pred = lis_scores.argmax(1)
             loss = nn.CrossEntropyLoss()
             losses = loss(lis_scores, labels)
@@ -605,38 +610,16 @@ class SpeakerCLIPSystem(system.BasicSystem):
     def validation_step(self, batch, batch_idx):
         import pdb; pdb.set_trace()
         
-        # if self.config.training_params.tf:
-        #     for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]: 
-        #         # import pdb; pdb.set_trace()
-        #         which_listener = "train" if "trainL0" in setting else "val"
-        #         # result = self.get_losses_for_batch_tf_with_ood_loss(batch[setting], batch_idx, which_listener="train", prefix="train")
-        #         result = self.get_losses_for_batch_tf(batch[setting], batch_idx, which_listener=which_listener, prefix=setting)
-        #         prag_loss = result['pragmatic_loss']
-        #         tf_loss = result['teacher_forcing_loss']
-        #         # total_loss = result['total_loss']
-        #         # ood_loss = result['ood_loss']
-        #         self.log_results(result=result, category=setting)
-        #         loss_final = ((prag_loss * self.config.training_params.prag_lmbd)
-        #                     + (tf_loss * self.config.training_params.tf_lmbd))
-        #     return loss_final
-
         if self.config.training_params.tf:
-            # if ((self.trainer.current_epoch % 3) == 0) or (self.trainer.current_epoch < 6) or (self.trainer.current_epoch > 90):
-            #     settings = ["valL0_trainD", "valL0_valD", "CLIP_trainD", "CLIP_valD"]
-            # else:
-            #     settings = ["valL0_trainD", "valL0_valD"]
-            settings = ["valL0_trainD", "valL0_valD", "CLIP_trainD", "CLIP_valD"]
-            for setting in settings: 
+            for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]: 
                 # import pdb; pdb.set_trace()
-                # which_listener = "train" if "trainL0" in setting else "val"
-                if "valL0" in setting:
-                    which_listener = "val"
-                elif "CLIP" in setting:
-                    which_listener = "clip"
+                which_listener = "train" if "trainL0" in setting else "val"
+                # result = self.get_losses_for_batch_tf_with_ood_loss(batch[setting], batch_idx, which_listener="train", prefix="train")
                 result = self.get_losses_for_batch_tf(batch[setting], batch_idx, which_listener=which_listener, prefix=setting)
                 prag_loss = result['pragmatic_loss']
                 tf_loss = result['teacher_forcing_loss']
                 # total_loss = result['total_loss']
+                # ood_loss = result['ood_loss']
                 self.log_results(result=result, category=setting)
                 loss_final = ((prag_loss * self.config.training_params.prag_lmbd)
                             + (tf_loss * self.config.training_params.tf_lmbd))
