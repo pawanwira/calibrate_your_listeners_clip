@@ -62,22 +62,22 @@ def run(config):
     )
 
     # import pdb; pdb.set_trace()
-    CKPT_DIR = os.path.join(constants.ROOT_DIR, 'src/models/checkpoints', config.wandb_params.exp_name)
-    if not os.path.exists(CKPT_DIR):
-        os.makedirs(CKPT_DIR)
-    print(f"CKPT AT {CKPT_DIR}")
-    # ckpt_callback = pl.callbacks.ModelCheckpoint(
-    #     CKPT_DIR,
-    #     save_top_k=-1,
-    #     every_n_epochs=config.training_params.checkpoint_steps,
+    # CKPT_DIR = os.path.join(constants.ROOT_DIR, 'src/models/checkpoints', config.wandb_params.exp_name)
+    # if not os.path.exists(CKPT_DIR):
+    #     os.makedirs(CKPT_DIR)
+    # print(f"CKPT AT {CKPT_DIR}")
+    # # ckpt_callback = pl.callbacks.ModelCheckpoint(
+    # #     CKPT_DIR,
+    # #     save_top_k=-1,
+    # #     every_n_epochs=config.training_params.checkpoint_steps,
+    # # )
+    # checkpoint_callback = pl.callbacks.ModelCheckpoint(
+    #     monitor="val_prag_loss",
+    #     dirpath=CKPT_DIR,
+    #     filename="s1-{epoch:02d}-{val_prag_loss:.2f}",
+    #     save_top_k=3,
+    #     mode="min",
     # )
-    checkpoint_callback = pl.callbacks.ModelCheckpoint(
-        monitor="val_prag_loss",
-        dirpath=CKPT_DIR,
-        filename="s1-{epoch:02d}-{val_prag_loss:.2f}",
-        save_top_k=3,
-        mode="min",
-    )
 
     # import pdb; pdb.set_trace()
     SystemClass = NAME2SYSTEM[config.pl.system]
@@ -90,7 +90,7 @@ def run(config):
     trainer = pl.Trainer(
         gpus=1,
         # checkpoint_callback=ckpt_callback,
-        callbacks=[checkpoint_callback],
+        # callbacks=[checkpoint_callback],
         max_epochs=int(config.training_params.num_epochs),
         # max_epochs = 1, 
         min_epochs=int(config.training_params.num_epochs),
