@@ -52,7 +52,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         self.exp_name = self.config.wandb_params.exp_name
         # path = os.path.join(constants.MAIN_REPO_DIR, "clip", "lang_table", "clip_vocab", self.exp_name)
         # self.lang_table_path = os.path.join("data3", "pawanw", "lang_table", "clip_vocab", self.exp_name)
-        self.lang_table_path = os.path.join("/data4/pawanw/lang_table/clip_vocab", self.exp_name)
+        self.lang_table_path = os.path.join("/data3/pawanw/lang_table/clip_vocab", self.exp_name)
         if not os.path.exists(self.lang_table_path):
             os.makedirs(self.lang_table_path)
 
@@ -134,7 +134,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         self.clip_scorer = clip_listener_scores.CLIPListenerScores
         self.tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
 
-        # import pdb; pdb.set_trace()
+        import pdb; pdb.set_trace()
         self.train_listeners = []
         self.val_listeners = []
         # Training listener
@@ -152,6 +152,8 @@ class SpeakerCLIPSystem(system.BasicSystem):
 
         for listener_idx in range(self.config.listener_params.ensemble_size,
                                   2*self.config.listener_params.ensemble_size):
+        # TODO: temp, replace line below with original 2 lines (above)
+        # for listener_idx in range(7, 10):
             # Val listeners
             print('Loading validation listener')
             # val_idx = (self.config.listener_params.val_idx
@@ -334,7 +336,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
 
     # TEACHER FORCING
     def get_losses_for_batch_tf(self, batch, batch_idx, which_listener, prefix):
-        # import pdb; pdb.set_trace()
+        import pdb; pdb.set_trace()
         # imgs, labels, utterances = (
         imgs_speaker, labels, utterances, imgs_clip = (
             # batch['imgs'], batch['label'].argmax(-1).long(), batch['utterance'])
@@ -545,7 +547,8 @@ class SpeakerCLIPSystem(system.BasicSystem):
         loss = result['loss']
         return loss
 
-    def validation_step(self, batch, batch_idx):    
+    def validation_step(self, batch, batch_idx):   
+        import pdb; pdb.set_trace() 
         if self.config.training_params.tf:
             for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD", "CLIP_trainD", "CLIP_valD"]: 
                 # import pdb; pdb.set_trace()
@@ -567,7 +570,6 @@ class SpeakerCLIPSystem(system.BasicSystem):
                             + (tf_loss * self.config.training_params.tf_lmbd))
             return loss_final
 
-        import pdb; pdb.set_trace()
         if ((self.trainer.current_epoch % 10) == 0) or (self.trainer.current_epoch > 90):
             settings = ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD", "CLIP_trainD", "CLIP_valD"]
         else:

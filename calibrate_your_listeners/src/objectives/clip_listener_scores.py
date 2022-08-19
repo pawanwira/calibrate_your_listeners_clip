@@ -205,6 +205,7 @@ class CLIPListenerScores(object):
             # utterance_features = self.listener.encode_text(utterance_tokens).float()
             # utterance_features = self.encode_text(self.lang[i]).float() # clip update
             ### utterance_features = self.listener.encode_text(embed_seq, max_idx).float() # clip update
+            # import pdb; pdb.set_trace()
             utterance_features = self.listener.encode_text(self.lang_padded[i], max_idx).float()
             # image_features /= image_features.clone().norm(dim=-1, keepdim=True)
             image_features = image_features.clone() / image_features.clone().norm(dim=-1, keepdim=True)

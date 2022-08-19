@@ -22,7 +22,8 @@ from calibrate_your_listeners.src.systems import (
     speaker_system_clip,
     speaker_system_clip_token,
     speaker_system_clip_withtrainL0,
-    speaker_system_clip_withtrainL0_withvalCLIP
+    speaker_system_clip_withtrainL0_withvalCLIP,
+    speaker_system_clip_withtrainL0_noCLIP
 )
 
 from calibrate_your_listeners import constants
@@ -34,7 +35,8 @@ NAME2SYSTEM = {
     's1': speaker_system.SpeakerSystem,
     's1_clip_token': speaker_system_clip_token.SpeakerCLIPSystem,
     's1_trainL0': speaker_system_clip_withtrainL0.SpeakerCLIPSystem,
-    's1_trainL0_valCLIP': speaker_system_clip_withtrainL0_withvalCLIP.SpeakerCLIPSystem
+    's1_trainL0_valCLIP': speaker_system_clip_withtrainL0_withvalCLIP.SpeakerCLIPSystem,
+    's1_trainL0_noCLIP': speaker_system_clip_withtrainL0_noCLIP.SpeakerCLIPSystem
 }
 
 torch.backends.cudnn.benchmark = True
@@ -79,7 +81,7 @@ def run(config):
     #     mode="min",
     # )
 
-    # import pdb; pdb.set_trace()
+    import pdb; pdb.set_trace()
     SystemClass = NAME2SYSTEM[config.pl.system]
     system = SystemClass(config)
     # print(f"wandb run directory is {wandb.run.dir}")
