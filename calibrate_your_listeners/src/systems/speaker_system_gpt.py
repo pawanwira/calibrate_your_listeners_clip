@@ -410,10 +410,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
     def training_step(self, batch, batch_idx):
         result = self.get_losses_for_batch(batch, batch_idx, which_listener="train", prefix="train")
         loss = result['loss']
-        # teacher_forcing_loss = result['teacher_forcing_loss']
         self.log_results(result=result, category="train")
-        # return loss + teacher_forcing_loss
-        # return teacher_forcing_loss
         return loss
 
     def test_step(self, batch, batch_idx):
@@ -427,10 +424,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
             result = self.get_losses_for_batch(
                 batch[setting], batch_idx, which_listener=which_listener, prefix=setting)
             loss = result['loss']
-            # teacher_forcing_loss = result['teacher_forcing_loss']
             self.log_results(result=result, category=setting)
-        # return loss + teacher_forcing_loss
-        # return teacher_forcing_loss
         return loss
 
     def val_dataloader(self):
