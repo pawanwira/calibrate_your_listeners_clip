@@ -26,7 +26,6 @@ class Listener(nn.Module): # L_0
 
 
     def set_vocab(self):
-        # import pdb; pdb.set_trace()
         self.vocab_size = self.clip_text_config.vocab_size
         
         """if self._is_old:
@@ -42,7 +41,6 @@ class Listener(nn.Module): # L_0
         self._set_tokens()
 
     def initialize_modules(self):
-        # import pdb; pdb.set_trace()
         self.embedding = nn.Embedding(self.vocab_size, 50) # embedding_module
         self.init_lang_feature_model()
         self.init_image_feature_model()
@@ -52,7 +50,6 @@ class Listener(nn.Module): # L_0
         self.lang2Joint = nn.Linear(self.lang_model.hidden_size, self.image_feat_size, bias=False)
 
     def init_lang_feature_model(self):
-        # import pdb; pdb.set_trace()
         self.lang_model = rnn_encoder.RNNEncoder(
             self.embedding, is_old=self._is_old) # g
 
@@ -65,7 +62,6 @@ class Listener(nn.Module): # L_0
 
     # this tokenize function is also in shapeworld.py
     def tokenize(self, utterances):
-        # import pdb; pdb.set_trace() # does not work
         encoded_input = self._tokenizer(
             utterances,
             padding=True,
@@ -80,8 +76,6 @@ class Listener(nn.Module): # L_0
         eos_attention = torch.tensor([0 for _ in range(self._max_seq_len-seq_length)]).unsqueeze(0)"""
         eos_input_ids = torch.tensor([
             self._end_token for _ in range(self._max_seq_len + 2 - seq_length)]).unsqueeze(0)
-            # self._end_token for _ in range(self.clip_text_config.max_position_embeddings-seq_length)]).unsqueeze(0)
-        # eos_attention = torch.tensor([0 for _ in range(self.clip_text_config.max_position_embeddings-seq_length)]).unsqueeze(0)
         eos_attention = torch.tensor([0 for _ in range(self._max_seq_len + 2 - seq_length)]).unsqueeze(0)
         # Add an EOS token at the very end if it doesn't already exist
         # and add attention to ignore the EOS tokens
@@ -139,16 +133,13 @@ class Listener(nn.Module): # L_0
             Represents the actual length of each sequence.
         :returns: softmax of listener's beliefs over images in reference game.
         """
-        # import pdb; pdb.set_trace()
         # Embed features, f_L(I_t)
-        # import pdb; pdb.set_trace()
         feats_emb = self.embed_features(feats)
         # Image -> joint space if using a small space
         if self.image2Joint is not None:
             feats_emb = self.image2Joint(feats_emb)
         # print("feats_emb: \n", feats_emb)
         # Embed language, g(u)
-        # import pdb; pdb.set_trace()
         lang_emb = self.lang_model(lang, lang_length,
                                     used_as_internal_listener) # 32, 40, 15 (batch, max_sentence, vocab_size)
         # lang -> joint space

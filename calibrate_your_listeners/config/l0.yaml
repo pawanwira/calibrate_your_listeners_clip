@@ -11,7 +11,7 @@ model_params:
   name: l0
   type: normal # vs. dropout
   vocab: shapeworld # gpt2
-  listener_idx: 0 # \in [0, 14]
+  listener_idx: 0 
   shapeworld_word2emb_size: 50
   dropout_rate: 0.0
 dataset_params:

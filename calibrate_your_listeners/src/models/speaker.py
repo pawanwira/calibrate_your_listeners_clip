@@ -6,7 +6,7 @@ from transformers import GPT2Tokenizer
 
 from calibrate_your_listeners.src.models import (
     vision  
-    # change back to vision_clip if we want self.image_feat_size = self.feat_model.final_feat_dim to be equal to 12544 (rather than 1024 in original vision)
+    # change to vision_clip if we want self.image_feat_size = self.feat_model.final_feat_dim = 12544 (rather than 1024 in original vision)
     # 12544 corresponds to new larger SW data
     # 1024 corresponds to old SW data
 )
@@ -90,7 +90,6 @@ class Speaker(nn.Module): # L_0
         return ft_concat
 
     def forward(self, feats, targets, activation='gumbel', tau=1.0, length_penalty=False):
-        # import pdb; pdb.set_trace()
         batch_size = feats.size(0)
         feats_emb = self.embed_features(feats, targets)
 
@@ -164,7 +163,6 @@ class Speaker(nn.Module): # L_0
             # (1, batch_size, n_vocab) X (n_vocab, h) -> (1, batch_size, h)
             inputs = (predicted_onehot.unsqueeze(0)) @ self.embedding.weight
 
-        # import pdb; pdb.set_trace()
         # Add EOS if we've never sampled it
         eos_onehot = torch.zeros(batch_size, 1, self.vocab_size, device=feats.device)
         eos_onehot[:, 0, self._end_token] = 1.0

@@ -11,15 +11,9 @@ from transformers import CLIPTokenizer
 class CLIPListenerTokenScores(object):
 
     def __init__(self, listener, imgs, tokenizer, preprocess, vocab_type, lang, lang_length, embedding_module=None, config=None):
-        # import pdb; pdb.set_trace()
-        # self.listener, self.preprocess = clip.load("ViT-B/32")
-        # self.freeze_model(self.listener)
-        # self.tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
-
         self.config = config
         self.listener = listener
         self.imgs = imgs
-        # self.df = df
         self.preprocess = preprocess
         self.vocab_type = vocab_type
         self.lang = lang
@@ -62,13 +56,11 @@ class CLIPListenerTokenScores(object):
         elif self.vocab_type == "shapeworld":
             lang = self.df['speaker_utterance'][i].replace("<sos>", "").replace("<eos>", "").replace("<UNK>", "").replace("<PAD>", "")
             lang = " ".join(lang.split())
-        # no prefix, just utterance generated 
         utterance = lang
         utterance_tokens = clip.tokenize(utterance).cuda()
         return utterance_tokens
 
     def pad_lang(self, lang):
-        # import pdb; pdb.set_trace()
         lang_perm = lang.permute(1, 0, 2)
         batch_size = self.imgs.size(0)
         pad_onehot = torch.zeros(batch_size, 1, self.clip_text_config.vocab_size, device=self.lang.device)
@@ -82,10 +74,8 @@ class CLIPListenerTokenScores(object):
         return lang_padded_perm
 
     def _calculate_listener_scores(self):
-        # import pdb; pdb.set_trace()
         losses = []
         for i in range(len(self.imgs)):
-            import pdb; pdb.set_trace()
             lis_scores = []
             states = self.imgs[i]
             images = torch.tensor(np.stack([self._preprocess(state) for state in states])).cuda()
@@ -99,9 +89,7 @@ class CLIPListenerTokenScores(object):
             eos_onehot[self._pad_token] = 1.0
             num_tokens = int(self.lang_length[i].item()) - 2
             for k in range(0, num_tokens):
-                # import pdb; pdb.set_trace()
                 partial_lang[eos_token_loc] = eos_onehot
-                # max_idx = torch.tensor(np.argmax([self.lang_padded[i][j].argmax().item() for j in range(int(self.lang_length[i].item()))])).unsqueeze(0)
                 max_idx = torch.tensor(np.argmax([partial_lang[j].argmax().item() for j in range(int(self.lang_length[i].item()))])).unsqueeze(0)
                 utterance_features = self.listener.encode_text(partial_lang, max_idx).float()
                 utterance_features = utterance_features.clone() / utterance_features.clone().norm(dim=-1, keepdim=True)
@@ -111,7 +99,6 @@ class CLIPListenerTokenScores(object):
             num_labels = num_tokens
 
             if num_tokens == 0:
-                # loss = torch.Tensor([-torch.log(torch.Tensor([1/3]))])
                 max_idx = torch.tensor(np.argmax([partial_lang[j].argmax().item() for j in range(int(self.lang_length[i].item()))])).unsqueeze(0)
                 utterance_features = self.listener.encode_text(partial_lang, max_idx).float()
                 utterance_features = utterance_features.clone() / utterance_features.clone().norm(dim=-1, keepdim=True)
@@ -126,7 +113,6 @@ class CLIPListenerTokenScores(object):
             loss = loss_f(lis_scores_final, labels)
             losses.append(loss)
         
-        import pdb; pdb.set_trace()
         token_losses = torch.stack(losses)
         return token_losses
         

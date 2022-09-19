@@ -535,8 +535,7 @@ def generate_single(mp_args):
         config = SingleConfig(colors[0],shapes[0])"""
 
     # NON PRAGMATIC UTTERANCE:
-    # import pdb; pdb.set_trace()
-    """if colors.count(colors[0])==1 and shapes.count(shapes[0])==1:
+        """if colors.count(colors[0])==1 and shapes.count(shapes[0])==1:
         if np.random.randint(0,2) == 0:
             config = SingleConfig(colors[0],None)
         else:

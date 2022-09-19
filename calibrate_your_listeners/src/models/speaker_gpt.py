@@ -78,29 +78,12 @@ class OriginalSpeaker(nn.Module): # L_0
         self.initialize_modules()
 
     def set_vocab(self):
-        # edit jul 14
         self.vocab_size = self.clip_text_config.vocab_size
-        # self._set_tokens()
-
-        """if self._is_old:
-            self.vocab_size = self.config.dataset_params.num_shapeworld_tokens
-            self._set_tokens()
-        else:
-            self._tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-            self._set_tokens()
-            self.vocab_size = self._tokenizer.vocab_size"""
-
-        # TODO: modify according to CLIP's requirements - this is temporary and just for testing
-        # self._tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
         self._set_tokens()
 
 
     def initialize_modules(self):
-        # import pdb; pdb.set_trace()
-        # self.hidden_size = self.clip_text_config.hidden_size
         self.hidden_size = self.config.model_params.hidden_size
-        # self.embedding = nn.Embedding(self.vocab_size, self.hidden_size)
-        # self.embedding = nn.Embedding(self.vocab_size, self.clip_text_config.hidden_size) 
         self.embedding = nn.Embedding(self.vocab_size, 50) 
 
         self.init_lang_model()
@@ -113,8 +96,6 @@ class OriginalSpeaker(nn.Module): # L_0
             self.hidden_size)
 
     def init_lang_model(self):
-        # self.hidden_size = self.clip_text_config.hidden_size  # edit: jul 14
-        # self.hidden_size = self.config.model_params.hidden_size
         self.gru = nn.GRU(
             self.embedding.embedding_dim, self.hidden_size)
         self.hidden2vocab = nn.Linear(self.hidden_size, self.vocab_size)
@@ -128,19 +109,9 @@ class OriginalSpeaker(nn.Module): # L_0
 
     def _set_tokens(self):
         # TODO: replace magic numbers with constants
-        # temp
         self._start_token = 49406 # start token id
         self._end_token = 49407 # end token id
         self._pad_token = self._end_token # 0 # pad token id
-
-        """if self.is_old:
-            self._start_token = constants.SOS_IDX
-            self._end_token = constants.EOS_IDX
-        else:           
-            self._start_token = None
-            self._end_token = self._tokenizer.eos_token_id
-            self._tokenizer.pad_token = self._tokenizer.eos_token"""
-        # self._torch_end_token = torch.tensor(self._end_token).to(self.device)
 
     def get_trainable_parameters(self, freeze_mode):
         return self.parameters()
@@ -158,25 +129,6 @@ class OriginalSpeaker(nn.Module): # L_0
         ft_concat = feats_and_targets.view(batch_size, -1)
         return ft_concat
 
-    """def _process_gt(self, gt):
-        if isinstance(gt, dict):
-            result = []
-            for seq_id in range(gt['input_ids'].shape[0]):
-                result.append(self._tokenizer.decode(gt['input_ids'][seq_id]))
-            return result
-        # else:
-        #     return self.train_dataset.to_text(gt.argmax(-1)) # link to to_text in shapeworld.py
-
-    def construct_lang_table(self, lang):
-        data = []
-        lang = {'input_ids': lang.argmax(-1)}
-        text_langs = self._process_gt(lang) # self.train_dataset.to_text(lang.argmax(-1))
-        for l in text_langs:
-            data.append({
-                'speaker_utterance': l
-            })
-        return pd.DataFrame(data)"""
-
     # lang is onehots (e.g. onehots from teacher_forcing_forward)
     def insert_sos_token(self, lang, batch_size):
         lang_perm = lang.permute(1, 0, 2)
@@ -190,7 +142,6 @@ class OriginalSpeaker(nn.Module): # L_0
     
     # y is targets
     def teacher_forcing_forward(self, feats, seq, targets): # length, targets): # y):
-        # import pdb; pdb.set_trace()
         batch_size = seq.shape[0]
         feats_emb = self.embed_features(feats=feats, targets=targets) # y.long())
 
@@ -224,12 +175,9 @@ class OriginalSpeaker(nn.Module): # L_0
 
         # Distribution over vocab for each batch, (batch_size, max_seq_length, vocab_size)
         lang_tensor = outputs_2d.reshape(batch_size, max_length, self.vocab_size)
-        # if lang_tensor.size(1) != 77:
-        #     import pdb; pdb.set_trace()
-        return lang_tensor ###, onehots_with_sos
+        return lang_tensor 
 
     def forward(self, feats, targets, activation='gumbel', tau=1.0, length_penalty=False):
-        # import pdb; pdb.set_trace()
         batch_size = feats.size(0)
         feats_emb = self.embed_features(feats, targets)
 
@@ -250,8 +198,6 @@ class OriginalSpeaker(nn.Module): # L_0
         # first input is SOS token
         # (batch_size, n_vocab)
         inputs_onehot = torch.zeros(batch_size, self.vocab_size, device=feats.device)
-        """if self._is_old:
-            inputs_onehot[:, constants.SOS_IDX] = 1.0"""
 
         # No start token for GPT - leave inputs as onehot
 
@@ -270,14 +216,9 @@ class OriginalSpeaker(nn.Module): # L_0
         # compute embeddings
         # (1, batch_size, n_vocab) X (n_vocab, h) -> (1, batch_size, h)
         inputs = inputs_onehot @ self.embedding.weight
-        """if self._is_old:
-            max_len = self._max_seq_len - 2
-        else:
-            max_len = self._max_seq_len - 1"""
         max_len = self._max_seq_len # - 2  # clip
 
         for i in range(max_len):  # Have room for EOS if never sampled
-            # import pdb; pdb.set_trace()
             # FIXME: This is inefficient since I do sampling even if we've
             # finished generating language.
             if all(done_sampling):
@@ -308,10 +249,6 @@ class OriginalSpeaker(nn.Module): # L_0
             # (1, batch_size, n_vocab) X (n_vocab, h) -> (1, batch_size, h)
             inputs = (predicted_onehot.unsqueeze(0)) @ self.embedding.weight
 
-        # if (lang_length[0] == 8 ) & (lang_length[1] == 7) & (lang_length[2] == 9) & (lang_length[3] == 8):
-        #     import pdb; pdb.set_trace()
-
-        # import pdb; pdb.set_trace()
         # Add EOS if we've never sampled it
         if not all(done_sampling):
             eos_onehot = torch.zeros(batch_size, 1, self.vocab_size, device=feats.device)
@@ -361,8 +298,4 @@ class OriginalSpeaker(nn.Module): # L_0
         # Sum up log probabilities of samples
         lang_length = torch.Tensor(lang_length)
 
-        # import pdb; pdb.set_trace()
-        # return lang_final, lang_length, eos_loss
-        # if lang_tensor.size(1) != 77:
-        #     import pdb; pdb.set_trace()
         return lang_tensor, lang_length, eos_loss, self.embedding # , lang_prob

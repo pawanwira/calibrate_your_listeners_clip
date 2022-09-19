@@ -1,5 +1,4 @@
 from calibrate_your_listeners.src.systems import system
-# from calibrate_your_listeners.src.models_original import ( # TODO: continue debugging 'import models' error
 from calibrate_your_listeners.src.models import (
     dropout_listener,
     listener,
@@ -37,11 +36,7 @@ class SpeakerCLIPSystem(system.BasicSystem):
         self._max_seq_len = constants.MAX_SEQ_LEN
         self.post_model_init()
 
-        # TODO: Check self.parameters() - check that the speaker parameters are in here
-        # import pdb; pdb.set_trace()
-
     def post_model_init(self):
-        # import pdb; pdb.set_trace()
         model = self.train_listeners[0]
         self.train_dataset.listener_tokenize_f=model.tokenize
         self.val_dataset.listener_tokenize_f=model.tokenize
@@ -108,20 +103,8 @@ class SpeakerCLIPSystem(system.BasicSystem):
         return new_state_dict
 
     def load_listeners(self):
-        """self.listener, self.preprocess = clip.load("ViT-B/32")
-        self.listener.cuda().eval()
-        self.freeze_model(self.listener)"""
-
-        """self.old_listener = self._load_listener(
-                listener_type=self.config.listener_params.type,
-                vocab_type=self.config.model_params.vocab,
-                listener_idx = listener_idx + 1    
-                )
-        self.freeze_model(self.old_listener)"""
-
         # CLIP as listener
         self.clip_listener, self.preprocess = clip.load("ViT-B/32")
-        self.clip_listener.cuda().eval()
         self.freeze_model(self.clip_listener)
         self.clip_scorer = clip_listener_scores.CLIPListenerScores
         self.clip_tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
@@ -200,7 +183,6 @@ class SpeakerCLIPSystem(system.BasicSystem):
             return result
 
     def construct_lang_table_original(self, lang, gt):
-        # import pdb; pdb.set_trace()
         data = []
         text_gts = self._process_gt(gt)
         if isinstance(gt, dict):
@@ -215,7 +197,6 @@ class SpeakerCLIPSystem(system.BasicSystem):
         return pd.DataFrame(data)
 
     def construct_lang_table(self, lang, gt, lis_scores):
-        # import pdb; pdb.set_trace()
         data = []
         text_gts = self._process_gt(gt)
         if isinstance(gt, dict):
@@ -273,47 +254,29 @@ class SpeakerCLIPSystem(system.BasicSystem):
 
         # df=self.construct_lang_table(lang=lang, gt=utterances, lis_scores=lis_scores)
         # self.save_lang_table(df, batch_idx, prefix)
-
-        # teacher_forcing_loss, teacher_forcing_onehots = self.get_teacher_forcing_loss(utterances, imgs_speaker, labels)
-        # teacher_forcing_loss = self.get_teacher_forcing_loss(utterances, imgs_speaker, labels)
-        # teacher_forcing_loss = teacher_forcing_loss * 100
         
         return {
-            'loss': losses,  # pragmatic loss
+            'loss': losses, 
             'gpt_loss': gpt_loss,
             'acc': acc,
-        #     'teacher_forcing_loss': teacher_forcing_loss
         }
     
     def get_teacher_forcing_loss(self, gt, img, targets):
-        # import pdb; pdb.set_trace()
-                             # listener, vocab, targets, sw):
         loss = 0.0
-        # if args.teacher_forcing_loss:
-        # lang = process_utterances(listener=listener, lang=lang,
-        #                         vocab=vocab, sw=sw, args=args)
-        # length = listener.get_length(lang)
-        # lang_tokens = lang['input_ids']
         input_ids = gt['input_ids']
         gt_tokens = torch.cat((input_ids[:, :0], input_ids[:, 1:]), axis=1)
         gt_onehot = F.one_hot(gt_tokens,
                 num_classes=self.model.vocab_size).cuda().float()
-        # length = listener.get_length(lang)
         
         # predicted_onehots below can be fed into CLIP listener scores
         lang_out = self.model.teacher_forcing_forward(feats=img, seq=gt_onehot,
-        # lang_out, tf_onehots = self.model.teacher_forcing_forward(feats=img, seq=gt_onehot,
-                                        # length=length, 
                                         targets=targets)
         batch_size = lang_out.shape[0]
-        # max_len = constants.MAX_SEQ_LEN + 2
-        # lang_out = lang_out[:, :max_len, :].contiguous()
         lang_out = lang_out.view(batch_size*lang_out.size(1), self.model.vocab_size)
-        # lang_onehot = lang_onehot[:, :max_len, :]
         gt = gt_onehot.long().view(batch_size*gt_onehot.size(1), self.model.vocab_size)
         loss_f = nn.CrossEntropyLoss()
         tf_loss = loss_f(lang_out.cuda(), torch.max(gt, 1)[1].cuda())
-        return tf_loss # , tf_onehots
+        return tf_loss 
     
     def get_losses_for_batch_teacher_forcing(self, batch, batch_idx, which_listener, prefix):
  
@@ -322,8 +285,6 @@ class SpeakerCLIPSystem(system.BasicSystem):
         
         teacher_forcing_loss, teacher_forcing_onehots = self.get_teacher_forcing_loss(utterances, imgs_speaker, labels)
         lang = teacher_forcing_onehots
-
-        # lang_nontf, lang_length, loss, embedding_module = self.model(imgs_speaker, labels) 
 
         if which_listener == "train":
             clip_scorer = self.clip_scorer(
@@ -447,7 +408,6 @@ class SpeakerCLIPSystem(system.BasicSystem):
         super().log_results(result, category)
 
     def training_step(self, batch, batch_idx):
-        # import pdb; pdb.set_trace()
         result = self.get_losses_for_batch(batch, batch_idx, which_listener="train", prefix="train")
         loss = result['loss']
         # teacher_forcing_loss = result['teacher_forcing_loss']
@@ -459,15 +419,10 @@ class SpeakerCLIPSystem(system.BasicSystem):
     def test_step(self, batch, batch_idx):
         result = self.get_losses_for_batch(batch, batch_idx, which_listener="test", prefix="test")
         loss = result['loss']
-        # teacher_forcing_loss = result['teacher_forcing_loss']
-        # self.log_results(result=result, category="test")
-        # return loss + teacher_forcing_loss
-        # return teacher_forcing_loss
         return loss
 
     def validation_step(self, batch, batch_idx):
         for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]:  # ["trainL0_trainD", "trainL0_valD"]:
-            # import pdb; pdb.set_trace()
             which_listener = "train" if "trainL0" in setting else "val"
             result = self.get_losses_for_batch(
                 batch[setting], batch_idx, which_listener=which_listener, prefix=setting)
@@ -479,10 +434,6 @@ class SpeakerCLIPSystem(system.BasicSystem):
         return loss
 
     def val_dataloader(self):
-        # train L0 - train D
-        # train L0 - val D
-        # val L0 - train D
-        # val L0 - val D
         loaders = {
             # CLIP (which speaker was trained with) and train dataset
             "trainL0_trainD": utils.create_dataloader(self.train_dataset, self.config, shuffle=False),

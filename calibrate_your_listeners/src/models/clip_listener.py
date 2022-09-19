@@ -22,7 +22,6 @@ class Listener(nn.Module): # L_0
         self.set_vocab()
         self.initialize_modules()
 
-
     def set_vocab(self):
         if self._is_old:
             self.vocab_size = self.config.dataset_params.num_shapeworld_tokens
@@ -52,7 +51,6 @@ class Listener(nn.Module): # L_0
         return self._is_old
 
     def tokenize(self, utterances):
-        # import pdb; pdb.set_trace()
         encoded_input = self._tokenizer(
             utterances,
             padding=True,

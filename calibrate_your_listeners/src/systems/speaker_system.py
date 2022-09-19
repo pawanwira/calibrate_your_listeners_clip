@@ -49,7 +49,6 @@ class SpeakerSystem(system.BasicSystem):
         print(result)
 
     def _load_listener(self, listener_type, vocab_type, listener_idx):
-        # import pdb; pdb.set_trace()
         if vocab_type == "shapeworld":
             vocab = "small_vocab"
         elif vocab_type == "gpt2":
@@ -84,7 +83,6 @@ class SpeakerSystem(system.BasicSystem):
             self.l0_scorer = dropout_listener_scores.DropoutListenerScores
 
         print(f'Loading listener from {model_fname}')
-        # import pdb; pdb.set_trace()
         # state_dict = self ._load_and_process_state_dict(model_fname)
         # l0.load_state_dict(state_dict)
 
@@ -95,7 +93,6 @@ class SpeakerSystem(system.BasicSystem):
         return l0
 
     def _load_and_process_state_dict(self, model_fname):
-        # import pdb; pdb.set_trace()
         state_dict = torch.load(model_fname)['state_dict']
         new_state_dict = dict()
         for k, v in state_dict.items():
@@ -103,16 +100,13 @@ class SpeakerSystem(system.BasicSystem):
             if k.startswith(key_):
                 k = k[len(key_):]
             new_state_dict[k] = v
-        # import pdb; pdb.set_trace()
         return new_state_dict
 
     def load_listeners(self):
-        # import pdb; pdb.set_trace()
         self.train_listeners = []
         self.val_listeners = []
         # Training listener
         for listener_idx in range(0, self.config.listener_params.ensemble_size):
-            # import pdb; pdb.set_trace()
             print('Loading training listener')
             print(f'Train idx: {listener_idx}')
             listener = self._load_listener(
@@ -159,7 +153,6 @@ class SpeakerSystem(system.BasicSystem):
             return self.train_dataset.to_text(gt.argmax(-1))
 
     def construct_lang_table(self, lang, gt):
-        # import pdb; pdb.set_trace()
         data = []
         text_gts = self._process_gt(gt)
         if isinstance(gt, dict):
@@ -174,7 +167,6 @@ class SpeakerSystem(system.BasicSystem):
         return pd.DataFrame(data)
 
     def get_losses_for_batch(self, batch, batch_idx, which_listener, prefix):
-        # import pdb; pdb.set_trace()
         imgs, labels, utterances = (
             batch['imgs'].float(), batch['label'].argmax(-1).long(), batch['utterance'])
         lang, lang_length, loss = self.model(imgs, labels)
@@ -185,7 +177,6 @@ class SpeakerSystem(system.BasicSystem):
             print(which_listener)
             self.check_requires_grad(lis)"""
         
-        # import pdb; pdb.set_trace()
         l0_scorer = self.l0_scorer(
             listeners=listeners,
             imgs=imgs,
@@ -194,7 +185,6 @@ class SpeakerSystem(system.BasicSystem):
             config=self.config
         )
 
-        # import pdb; pdb.set_trace()
         avg_l0_scores = l0_scorer.get_average_l0_score()
         lis_pred = avg_l0_scores.argmax(1)
         loss = nn.CrossEntropyLoss()
@@ -245,7 +235,6 @@ class SpeakerSystem(system.BasicSystem):
         super().log_results(result, category)
 
     def training_step(self, batch, batch_idx):
-        # import pdb; pdb.set_trace()
         result = self.get_losses_for_batch(batch, batch_idx, which_listener="train", prefix="train")
         loss = result['loss']
         self.log_results(result=result, category="train")
@@ -258,7 +247,6 @@ class SpeakerSystem(system.BasicSystem):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        # import pdb; pdb.set_trace()
         for setting in ["trainL0_trainD", "trainL0_valD", "valL0_trainD", "valL0_valD"]:
             which_listener = "train" if "trainL0" in setting else "val"
             result = self.get_losses_for_batch(
@@ -268,10 +256,6 @@ class SpeakerSystem(system.BasicSystem):
         return loss
 
     def val_dataloader(self):
-        # train L0 - train D
-        # train L0 - val D
-        # val L0 - train D
-        # val L0 - val D
         loaders = {
             "trainL0_trainD": utils.create_dataloader(self.train_dataset, self.config, shuffle=False),
             "trainL0_valD": utils.create_dataloader(self.val_dataset, self.config, shuffle=False),

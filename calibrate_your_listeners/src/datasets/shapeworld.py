@@ -42,7 +42,6 @@ def _init_vocab(langs):
 
 
 def load_raw_data(data_file, dataset):
-    # import pdb; pdb.set_trace()
     data = np.load(data_file)
     # Preprocessing/tokenization
     return {
@@ -69,7 +68,6 @@ class Shapeworld(data.Dataset):
         """
         """
         super().__init__()
-        # import pdb; pdb.set_trace()
         self.train = train
         self.config = config
         # TODO update cofig dir
@@ -146,7 +144,6 @@ class Shapeworld(data.Dataset):
             generate_shapeworld_data.run(self.config.dataset_params)
 
     def load_data(self):
-        # import pdb; pdb.set_trace()
         if self.train and self.name == "l0":
             self.filepaths = self.l0_filepaths[:-1]
         elif not self.train and self.name == "l0":
@@ -162,7 +159,6 @@ class Shapeworld(data.Dataset):
 
         print(f"Filepaths: {self.filepaths}")
 
-        # import pdb; pdb.set_trace()
         raw_data = {"imgs": np.array([]), "labels": np.array([]), "langs": np.array([]), "imgs_original": np.array([])}
         for fpath in self.filepaths:
             d = load_raw_data(fpath, dataset=self.config.dataset_params.name)
@@ -176,7 +172,6 @@ class Shapeworld(data.Dataset):
                 raw_data['imgs_original'], d['imgs_original']), axis=0)
         self.raw_data = raw_data
         self.lang_raw = self.raw_data['langs']
-        # import pdb; pdb.set_trace()
         self.lang_idx, self.lang_len = self.to_idx(self.lang_raw)
 
     def __len__(self):
@@ -208,7 +203,6 @@ class Shapeworld(data.Dataset):
             #       #         lang[B][L] = SOS_IDX
         else:
             str_lang = self.to_str_text([lang])
-            # import pdb; pdb.set_trace()
             # lang = self.listener_tokenize_f(str_lang) 
             lang = self.tokenize(str_lang) # temp replacement
         return lang
@@ -216,7 +210,6 @@ class Shapeworld(data.Dataset):
     # TEMP
     # this tokenize function is originally from listener.py
     def tokenize(self, utterances):
-        # import pdb; pdb.set_trace() # does not work
         # self._max_seq_len = max_seq_len
         """self._max_seq_len = constants.MAX_SEQ_LEN
         self._tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
@@ -236,8 +229,6 @@ class Shapeworld(data.Dataset):
         eos_attention = torch.tensor([0 for _ in range(self._max_seq_len-seq_length)]).unsqueeze(0)"""
         eos_input_ids = torch.tensor([
             self._end_token for _ in range(self._max_seq_len + 2 - seq_length)]).unsqueeze(0)
-            # self._end_token for _ in range(self.clip_text_config.max_position_embeddings-seq_length)]).unsqueeze(0)
-        # eos_attention = torch.tensor([0 for _ in range(self.clip_text_config.max_position_embeddings-seq_length)]).unsqueeze(0)
         eos_attention = torch.tensor([0 for _ in range(self._max_seq_len + 2 - seq_length)]).unsqueeze(0)
         # Add an EOS token at the very end if it doesn't already exist
         # and add attention to ignore the EOS tokens

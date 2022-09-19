@@ -52,7 +52,6 @@ class Listener(nn.Module): # L_0
         return self._is_old
 
     def tokenize(self, utterances):
-        # import pdb; pdb.set_trace()
         encoded_input = self._tokenizer(
             utterances,
             padding=True,
@@ -116,9 +115,7 @@ class Listener(nn.Module): # L_0
             Represents the actual length of each sequence.
         :returns: softmax of listener's beliefs over images in reference game.
         """
-        # import pdb; pdb.set_trace()
         # Embed features, f_L(I_t)
-        import pdb; pdb.set_trace()
         feats_emb = self.embed_features(feats)
         # Image -> joint space if using a small space
         if self.image2Joint is not None:
